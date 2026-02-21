@@ -98,7 +98,7 @@
     border-radius: 8px; padding: 10px 14px; background: var(--paper); color: var(--ink);
     outline: none; transition: border-color 0.2s; width: 100%; box-sizing: border-box; max-width: 100%;
   }
-  input[type="date"], input[type="time"] { min-width: 0; -webkit-appearance: none; appearance: none; }
+  input[type="date"], input[type="time"] { min-width: 0; width: 100%; }
   input:focus, textarea:focus, select:focus { border-color: var(--terracotta); }
   textarea { resize: vertical; min-height: 80px; }
   label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--mist); display: block; margin-bottom: 5px; }
@@ -196,7 +196,7 @@
     .field { min-width: 0; width: 100%; }
     .modal { padding: 20px 16px; max-width: calc(100vw - 32px); overflow: hidden; }
     input, select, textarea { max-width: 100%; width: 100%; box-sizing: border-box; }
-    input[type="date"], input[type="time"] { width: 100%; -webkit-appearance: none; appearance: none; font-size: 16px; }
+    input[type="date"], input[type="time"] { width: 100%; font-size: 16px; }
     .field { overflow: hidden; }
   }
 </style>
