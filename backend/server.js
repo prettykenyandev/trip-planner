@@ -106,6 +106,17 @@ app.delete('/api/trip/events/:id', async (req, res) => {
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
+app.patch('/api/trip/events/:id', async (req, res) => {
+  try {
+    const trip = await getTrip();
+    const ev = trip.events.id(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Not found' });
+    Object.assign(ev, req.body);
+    await trip.save();
+    res.json(ev);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
 // ══════════════════════════════════════════════════════════════
 //  PACKING
 // ══════════════════════════════════════════════════════════════

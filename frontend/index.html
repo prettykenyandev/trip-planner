@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Family Trip Planner · Apr 1–17, 2026</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -196,7 +196,7 @@
     .form-row { flex-direction: column; }
     .field { min-width: 0; width: 100%; }
     .modal { padding: 20px 16px; max-width: calc(100vw - 32px); overflow: hidden; }
-    input, select, textarea { max-width: 100%; width: 100%; box-sizing: border-box; }
+    input, select, textarea { max-width: 100%; width: 100%; box-sizing: border-box; font-size: 16px; }
     input[type="date"], input[type="time"] { width: 100%; font-size: 16px; }
     .field { overflow: hidden; }
   }
@@ -434,6 +434,7 @@ let trip = { destinations: [], events: [], packItems: [], expenses: [], notes: [
 let activeDestFilter = 'all';
 let activePackFilter = 'all';
 let editNoteId = null;
+let editEventId = null;
 
 const catColors = { Accommodation:'#d4a853', Transport:'#2980b9', Food:'#8e44ad', Activities:'#27ae60', Shopping:'#e74c3c', Other:'#7a9e7e' };
 const sym = () => ({ USD:'$', EUR:'€', GBP:'£', KES:'KSh', JPY:'¥' })[trip.currency] || '$';
@@ -560,11 +561,35 @@ function renderDestChips() {
 
 // ── EVENTS ───────────────────────────────────────────────────
 function openAddEventModal() {
+  editEventId = null;
   ['evDate','evTime','evTitle','evNote','evPeople','evPlace','evCost'].forEach(id => document.getElementById(id).value='');
   document.getElementById('evCat').value='activity';
   document.getElementById('evDuration').value='0';
   document.getElementById('evQty').value='1';
+  document.querySelector('#eventModal .modal-header h3').textContent = 'Add Event';
+  document.getElementById('eventSaveBtn').textContent = 'Add Event';
   renderDestChips(); openModal('eventModal');
+}
+
+function editEvent(id) {
+  const ev = trip.events.find(e => e._id === id);
+  if (!ev) return;
+  editEventId = id;
+  document.getElementById('evDate').value = ev.date || '';
+  document.getElementById('evTime').value = ev.time || '';
+  document.getElementById('evTitle').value = ev.title || '';
+  document.getElementById('evCat').value = ev.cat || 'activity';
+  document.getElementById('evPlace').value = ev.place || '';
+  document.getElementById('evDuration').value = ev.duration || '0';
+  document.getElementById('evPeople').value = ev.people || '';
+  document.getElementById('evCost').value = ev.cost || '';
+  document.getElementById('evQty').value = ev.qty || 1;
+  document.getElementById('evNote').value = ev.note || '';
+  renderDestChips();
+  document.getElementById('evDest').value = ev.dest || '';
+  document.querySelector('#eventModal .modal-header h3').textContent = 'Edit Event';
+  document.getElementById('eventSaveBtn').textContent = 'Save Changes';
+  openModal('eventModal');
 }
 
 async function addEvent() {
@@ -573,7 +598,7 @@ async function addEvent() {
   if (!date || !title) { toast('Please enter a date and title.'); return; }
   if (!isValidTripDate(date)) { toast('⚠️ Date must be between Apr 1–17, 2026'); return; }
   setLoading('eventSaveBtn', true);
-  const ev = await api('POST', '/events', {
+  const payload = {
     date, time: document.getElementById('evTime').value,
     title, cat: document.getElementById('evCat').value,
     dest: document.getElementById('evDest').value,
@@ -583,11 +608,20 @@ async function addEvent() {
     people: document.getElementById('evPeople').value.trim(),
     cost: parseFloat(document.getElementById('evCost').value) || 0,
     qty: parseInt(document.getElementById('evQty').value) || 1,
-  });
-  trip.events.push(ev);
+  };
+  if (editEventId) {
+    const updated = await api('PATCH', `/events/${editEventId}`, payload);
+    const idx = trip.events.findIndex(e => e._id === editEventId);
+    if (idx >= 0) trip.events[idx] = updated;
+    editEventId = null;
+    toast('✏️ Event updated!');
+  } else {
+    const ev = await api('POST', '/events', payload);
+    trip.events.push(ev);
+    toast('📅 Event added!');
+  }
   closeModal('eventModal'); renderItinerary();
   setLoading('eventSaveBtn', false);
-  toast('📅 Event added!');
 }
 
 async function removeEvent(id) {
@@ -622,6 +656,7 @@ function renderItinerary() {
             </div>
           </div>
           <span class="event-tag tag-${ev.cat}">${ev.cat}</span>
+          <button onclick="editEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--terracotta);font-size:0.85rem;padding:0 4px" title="Edit">✏️</button>
           <button onclick="removeEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem;padding:0 4px">×</button>
         </div>`).join('')}
     </div>`;
