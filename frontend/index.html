@@ -257,6 +257,16 @@
       <h2>Budget Tracker</h2>
       <button class="btn btn-sm" onclick="openAddExpenseModal()">+ Expense</button>
     </div>
+    <div class="card" style="margin-bottom:20px">
+      <label>Set Total Budget</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="number" id="budgetInput" placeholder="e.g. 3000" style="flex:1">
+        <select id="currencySelect" style="width:90px">
+          <option>USD</option><option>EUR</option><option>GBP</option><option>KES</option><option>JPY</option>
+        </select>
+        <button class="btn" onclick="setBudget()">Set</button>
+      </div>
+    </div>
     <div class="budget-summary">
       <div class="budget-card"><div class="bc-label">Total Budget</div><div class="bc-amount neutral" id="bc-total">$0</div></div>
       <div class="budget-card"><div class="bc-label">Spent</div><div class="bc-amount" id="bc-spent">$0</div></div>
@@ -270,16 +280,6 @@
       <div class="donut-legend" id="donutLegend"><p style="color:var(--mist);font-size:0.82rem">No expenses yet</p></div>
     </div>
     <div id="expense-list"></div>
-    <div class="card" style="margin-top:16px">
-      <label>Set Total Budget</label>
-      <div style="display:flex;gap:10px;align-items:center">
-        <input type="number" id="budgetInput" placeholder="e.g. 3000" style="flex:1">
-        <select id="currencySelect" style="width:90px">
-          <option>USD</option><option>EUR</option><option>GBP</option><option>KES</option><option>JPY</option>
-        </select>
-        <button class="btn" onclick="setBudget()">Set</button>
-      </div>
-    </div>
   </div>
 
   <!-- JOURNAL -->
