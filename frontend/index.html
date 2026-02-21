@@ -207,7 +207,7 @@
   <p>Loading your trip…</p>
 </div>
 
-<div id="syncBadge" class="saved">✓ Saved</div>
+<div id="syncBadge" class="saved" style="display:none">✓ Saved</div>
 <div id="toast"></div>
 
 <header>
@@ -447,11 +447,17 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+let syncTimer;
 function setSyncBadge(state) {
   const el = document.getElementById('syncBadge');
+  clearTimeout(syncTimer);
+  el.style.display = '';
   el.className = 'saved'; el.textContent = '✓ Saved';
   if (state === 'syncing') { el.className = 'syncing'; el.textContent = '↻ Saving…'; }
   if (state === 'error')   { el.className = 'error';   el.textContent = '✕ Error'; }
+  if (state === 'saved') {
+    syncTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
 }
 
 // ── API helpers ──────────────────────────────────────────────
@@ -496,6 +502,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
+  localStorage.setItem('activeTab', name);
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -833,6 +840,13 @@ function setLoading(btnId, loading) {
 }
 
 // ── Boot ─────────────────────────────────────────────────────
+(function restoreTab() {
+  const saved = localStorage.getItem('activeTab');
+  if (saved) {
+    const btn = document.querySelector(`nav button[onclick*="'${saved}'"]`);
+    if (btn) switchTab(saved, btn);
+  }
+})();
 loadTrip();
 </script>
 </body>
