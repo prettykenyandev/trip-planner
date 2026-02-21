@@ -112,7 +112,13 @@
   .dest-chip.active { background: var(--ink); color: white; border-color: var(--ink); }
   .dest-chip:hover:not(.active) { border-color: var(--terracotta); color: var(--terracotta); }
   .day-block { border-left: 3px solid var(--gold); padding-left: 16px; margin-bottom: 24px; }
-  .day-label { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--terracotta); margin-bottom: 10px; }
+  .day-label { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--terracotta); margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; user-select: none; }
+  .day-label .toggle-arrow { display: inline-block; transition: transform 0.2s; font-size: 0.7rem; }
+  .day-block.collapsed .day-events { display: none; }
+  .day-block.collapsed .toggle-arrow { transform: rotate(-90deg); }
+  .day-block.past { border-left-color: var(--mist); opacity: 0.65; }
+  .day-block.past .day-label { color: var(--mist); }
+  .past-divider { text-align: center; font-size: 0.78rem; color: var(--mist); margin: 20px 0 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
   .event-item { background: white; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--sand); display: flex; align-items: flex-start; gap: 12px; overflow: hidden; }
   .event-time { font-size: 0.75rem; font-weight: 700; color: var(--terracotta); min-width: 48px; padding-top: 2px; }
   .event-body { flex: 1; }
@@ -637,10 +643,22 @@ function renderItinerary() {
   if (!events.length) { list.innerHTML = `<div class="empty-state"><div class="es-icon">🗺️</div><p>No events yet.<br>Add destinations and events!</p></div>`; return; }
   const byDate = {};
   events.forEach(e => { if(!byDate[e.date]) byDate[e.date]=[]; byDate[e.date].push(e); });
-  list.innerHTML = Object.keys(byDate).sort().map(date => {
+  const today = new Date().toISOString().slice(0, 10);
+  const allDates = Object.keys(byDate).sort();
+  const futureDates = allDates.filter(d => d >= today);
+  const pastDates = allDates.filter(d => d < today);
+  const sortedDates = [...futureDates, ...(pastDates.length ? ['__past_divider__'] : []), ...pastDates];
+
+  list.innerHTML = sortedDates.map(date => {
+    if (date === '__past_divider__') return `<div class="past-divider">── Past Days ──</div>`;
+    const isPast = date < today;
     const label = new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    return `<div class="day-block">
-      <div class="day-label">📅 ${label}</div>
+    const count = byDate[date].length;
+    return `<div class="day-block${isPast ? ' past collapsed' : ''}" id="day-${date}">
+      <div class="day-label" onclick="toggleDay('${date}')">
+        <span class="toggle-arrow">▼</span> 📅 ${label} <span style="font-weight:400;font-size:0.78rem;color:var(--mist);font-family:'DM Sans',sans-serif">(${count} event${count!==1?'s':''})</span>
+      </div>
+      <div class="day-events">
       ${byDate[date].sort((a,b)=>a.time.localeCompare(b.time)).map(ev=>`
         <div class="event-item">
           <div class="event-time">${ev.time||'—'}</div>
@@ -659,8 +677,14 @@ function renderItinerary() {
           <button onclick="editEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--terracotta);font-size:0.85rem;padding:0 4px" title="Edit">✏️</button>
           <button onclick="removeEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem;padding:0 4px">×</button>
         </div>`).join('')}
+      </div>
     </div>`;
   }).join('');
+}
+
+function toggleDay(date) {
+  const block = document.getElementById('day-' + date);
+  if (block) block.classList.toggle('collapsed');
 }
 
 // ── PACKING ──────────────────────────────────────────────────
