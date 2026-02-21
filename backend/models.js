@@ -17,6 +17,8 @@ const EventSchema = new mongoose.Schema({
   note:     { type: String, default: '' },
   duration: { type: Number, default: 0 },        // duration in minutes (0 = not set)
   people:   { type: String, default: '' },        // comma-separated names
+  cost:     { type: Number, default: 0 },          // unit cost (e.g. price per ticket)
+  qty:      { type: Number, default: 1 },          // quantity (e.g. number of tickets)
 }, { _id: true });
 
 // ── Pack Item ─────────────────────────────────────────────────

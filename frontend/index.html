@@ -125,6 +125,7 @@
   .event-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
   .event-duration { font-size: 0.75rem; color: var(--mist); display: inline-flex; align-items: center; gap: 3px; }
   .event-people { font-size: 0.75rem; color: var(--sage); display: inline-flex; align-items: center; gap: 3px; }
+  .event-cost { font-size: 0.75rem; color: var(--gold); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
   .btn-calendar { background: none; border: 1px solid var(--sage); color: var(--sage); border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .btn-calendar:hover { background: var(--sage); color: white; }
 
@@ -343,6 +344,10 @@
       </div>
     </div>
     <div class="field" style="margin-bottom:12px"><label>People (optional)</label><input type="text" id="evPeople" placeholder="e.g. Mom, Dad, Sarah"></div>
+    <div class="form-row">
+      <div class="field"><label>Cost per item ($)</label><input type="number" id="evCost" placeholder="0.00" min="0" step="0.01"></div>
+      <div class="field" style="max-width:100px"><label>Qty</label><input type="number" id="evQty" placeholder="1" min="1" value="1"></div>
+    </div>
     <div class="field"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
@@ -533,9 +538,10 @@ function renderDestChips() {
 
 // ── EVENTS ───────────────────────────────────────────────────
 function openAddEventModal() {
-  ['evDate','evTime','evTitle','evNote','evPeople','evPlace'].forEach(id => document.getElementById(id).value='');
+  ['evDate','evTime','evTitle','evNote','evPeople','evPlace','evCost'].forEach(id => document.getElementById(id).value='');
   document.getElementById('evCat').value='activity';
   document.getElementById('evDuration').value='0';
+  document.getElementById('evQty').value='1';
   renderDestChips(); openModal('eventModal');
 }
 
@@ -552,6 +558,8 @@ async function addEvent() {
     note: document.getElementById('evNote').value.trim(),
     duration: parseInt(document.getElementById('evDuration').value) || 0,
     people: document.getElementById('evPeople').value.trim(),
+    cost: parseFloat(document.getElementById('evCost').value) || 0,
+    qty: parseInt(document.getElementById('evQty').value) || 1,
   });
   trip.events.push(ev);
   closeModal('eventModal'); renderItinerary();
@@ -586,6 +594,7 @@ function renderItinerary() {
             <div class="event-meta">
               ${ev.duration?`<span class="event-duration">⏱ ${formatDuration(ev.duration)}</span>`:''}
               ${ev.people?`<span class="event-people">👥 ${ev.people}</span>`:''}
+              ${ev.cost?`<span class="event-cost">💵 ${sym()}${ev.cost}${ev.qty>1?' × '+ev.qty+' = '+sym()+(ev.cost*ev.qty).toFixed(2):''}</span>`:''}
               <button class="btn-calendar" onclick="downloadICS('${ev._id}')" title="Add to phone calendar">📲 Calendar</button>
             </div>
           </div>
