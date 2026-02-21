@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Trip Planner · Apr 1–17</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a2e; --paper: #faf7f2; --sand: #e8dfd0;
+    --terracotta: #c4622d; --gold: #d4a853; --sage: #7a9e7e;
+    --mist: #a8b5c1; --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--ink); color: white; padding: 10px 22px; border-radius: 24px;
+    font-size: 0.85rem; font-weight: 500; z-index: 999; transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* LOADING */
+  #loader {
+    position: fixed; inset: 0; background: var(--paper); display: flex;
+    flex-direction: column; align-items: center; justify-content: center; z-index: 500;
+  }
+  #loader .spinner {
+    width: 40px; height: 40px; border: 3px solid var(--sand);
+    border-top-color: var(--terracotta); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loader p { color: var(--mist); font-size: 0.88rem; }
+  #loader.hidden { display: none; }
+
+  /* SYNC BADGE */
+  #syncBadge {
+    position: fixed; top: 12px; right: 12px; z-index: 300;
+    font-size: 0.72rem; font-weight: 600; padding: 4px 10px;
+    border-radius: 12px; letter-spacing: 0.5px;
+    transition: all 0.3s;
+  }
+  #syncBadge.syncing { background: #fef9e7; color: var(--gold); border: 1px solid var(--gold); }
+  #syncBadge.saved   { background: #eafaf1; color: var(--sage); border: 1px solid var(--sage); }
+  #syncBadge.error   { background: #fdf2f2; color: #c0392b;     border: 1px solid #c0392b; }
+
+  header {
+    background: var(--ink); color: var(--paper);
+    padding: 28px 32px 24px; position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  }
+  .header-left h1 { font-family: 'Playfair Display', serif; font-size: 1.8rem; letter-spacing: -0.5px; line-height: 1; }
+  .header-left span { font-size: 0.78rem; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
+  .date-badge { background: var(--terracotta); color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; white-space: nowrap; }
+
+  nav { display: flex; background: var(--ink); border-top: 1px solid rgba(255,255,255,0.08); overflow-x: auto; }
+  nav button {
+    flex: 1; min-width: 80px; padding: 12px 8px; border: none; background: transparent;
+    color: var(--mist); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;
+    transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  nav button .icon { font-size: 1.1rem; }
+  nav button.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+  nav button:hover:not(.active) { color: var(--paper); }
+
+  main { max-width: 700px; margin: 0 auto; padding: 24px 16px 80px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-header h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; }
+
+  .btn {
+    background: var(--terracotta); color: white; border: none; border-radius: 8px;
+    padding: 10px 18px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: background 0.2s, transform 0.1s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: #b0561f; }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn-ghost { background: transparent; color: var(--terracotta); border: 1.5px solid var(--terracotta); }
+  .btn-ghost:hover { background: rgba(196,98,45,0.08); }
+  .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+  .btn-danger { background: #e05555; }
+  .btn-danger:hover { background: #c94444; }
+
+  .card { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--sand); }
+
+  input, textarea, select {
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; border: 1.5px solid var(--sand);
+    border-radius: 8px; padding: 10px 14px; background: var(--paper); color: var(--ink);
+    outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--terracotta); }
+  textarea { resize: vertical; min-height: 80px; }
+  label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--mist); display: block; margin-bottom: 5px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .field { flex: 1; min-width: 140px; }
+
+  /* ITINERARY */
+  .destination-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .dest-chip { padding: 8px 18px; border-radius: 20px; border: 1.5px solid var(--sand); background: white; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .dest-chip.active { background: var(--ink); color: white; border-color: var(--ink); }
+  .dest-chip:hover:not(.active) { border-color: var(--terracotta); color: var(--terracotta); }
+  .day-block { border-left: 3px solid var(--gold); padding-left: 16px; margin-bottom: 24px; }
+  .day-label { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--terracotta); margin-bottom: 10px; }
+  .event-item { background: white; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--sand); display: flex; align-items: flex-start; gap: 12px; }
+  .event-time { font-size: 0.75rem; font-weight: 700; color: var(--terracotta); min-width: 48px; padding-top: 2px; }
+  .event-body { flex: 1; }
+  .event-title { font-weight: 500; font-size: 0.9rem; margin-bottom: 2px; }
+  .event-note { font-size: 0.8rem; color: var(--mist); }
+  .event-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  .tag-transport { background: #e8f4fd; color: #2980b9; }
+  .tag-hotel { background: #fef9e7; color: #d4ac0d; }
+  .tag-activity { background: #eafaf1; color: #27ae60; }
+  .tag-food { background: #fdf2f8; color: #8e44ad; }
+  .tag-other { background: var(--sand); color: var(--ink); }
+
+  /* PACKING */
+  .pack-categories { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .cat-chip { padding: 6px 14px; border-radius: 16px; font-size: 0.78rem; font-weight: 500; cursor: pointer; border: 1.5px solid var(--sand); background: white; transition: all 0.2s; }
+  .cat-chip.sel { background: var(--ink); color: white; border-color: var(--ink); }
+  .pack-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--sand); transition: opacity 0.2s; }
+  .pack-item.packed { opacity: 0.5; }
+  .pack-item.packed .item-name { text-decoration: line-through; }
+  .pack-checkbox { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--sand); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: white; font-size: 0.7rem; }
+  .pack-checkbox.checked { background: var(--sage); border-color: var(--sage); color: white; }
+  .item-name { flex: 1; font-size: 0.9rem; }
+  .item-cat-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--sand); color: var(--ink); font-weight: 500; }
+  .pack-progress { background: var(--sand); border-radius: 20px; height: 8px; margin-bottom: 20px; overflow: hidden; }
+  .pack-bar { height: 100%; background: var(--sage); border-radius: 20px; transition: width 0.4s ease; }
+  .pack-stats { font-size: 0.82rem; color: var(--mist); margin-bottom: 8px; }
+
+  /* BUDGET */
+  .budget-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .budget-card { background: white; border-radius: 12px; padding: 16px; border: 1px solid var(--sand); text-align: center; }
+  .budget-card .bc-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--mist); font-weight: 500; margin-bottom: 6px; }
+  .budget-card .bc-amount { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; }
+  .bc-amount.over { color: #e05555; }
+  .bc-amount.ok { color: var(--sage); }
+  .bc-amount.neutral { color: var(--ink); }
+  .expense-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--sand); }
+  .exp-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .exp-info { flex: 1; }
+  .exp-name { font-size: 0.9rem; font-weight: 500; }
+  .exp-meta { font-size: 0.75rem; color: var(--mist); }
+  .exp-amount { font-weight: 700; font-size: 0.95rem; }
+  .donut-wrap { display: flex; align-items: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+  svg.donut { flex-shrink: 0; }
+  .donut-legend { flex: 1; min-width: 140px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.82rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* JOURNAL */
+  .note-card { background: white; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; border: 1px solid var(--sand); }
+  .note-card .note-date { font-size: 0.72rem; color: var(--gold); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .note-card .note-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 6px; }
+  .note-card .note-body { font-size: 0.88rem; color: #555; line-height: 1.6; }
+  .note-card .note-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--mist); }
+  .empty-state .es-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.9rem; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,26,46,0.5); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--paper); border-radius: 16px; padding: 28px 24px; max-width: 460px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h3 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-bottom: 20px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  @media (max-width: 480px) {
+    .budget-summary { grid-template-columns: 1fr 1fr; }
+    header { padding: 20px 16px 16px; }
+    main { padding: 16px 12px 80px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spinner"></div>
+  <p>Loading your trip…</p>
+</div>
+
+<div id="syncBadge" class="saved">✓ Saved</div>
+<div id="toast"></div>
+
+<header>
+  <div class="header-left">
+    <span>Family Journey</span>
+    <h1>Trip Planner ✈</h1>
+  </div>
+  <div class="date-badge">Apr 1 – 17, 2025</div>
+</header>
+
+<nav>
+  <button class="active" onclick="switchTab('itinerary', this)"><span class="icon">🗺️</span> Itinerary</button>
+  <button onclick="switchTab('packing', this)"><span class="icon">🎒</span> Packing</button>
+  <button onclick="switchTab('budget', this)"><span class="icon">💰</span> Budget</button>
+  <button onclick="switchTab('journal', this)"><span class="icon">📓</span> Journal</button>
+</nav>
+
+<main>
+  <!-- ITINERARY -->
+  <div id="tab-itinerary" class="tab-content active">
+    <div class="section-header">
+      <h2>Itinerary</h2>
+      <button class="btn btn-sm" onclick="openAddDestModal()">+ Destination</button>
+    </div>
+    <div class="destination-selector" id="destChips">
+      <div class="dest-chip active" data-dest="all" onclick="filterDest(this)">📋 All</div>
+    </div>
+    <div id="itinerary-list"></div>
+    <button class="btn" style="width:100%;justify-content:center" onclick="openAddEventModal()">+ Add Event</button>
+  </div>
+
+  <!-- PACKING -->
+  <div id="tab-packing" class="tab-content">
+    <div class="section-header">
+      <h2>Packing List</h2>
+      <button class="btn btn-sm" onclick="openAddItemModal()">+ Add Item</button>
+    </div>
+    <div class="pack-stats" id="packStats">0 of 0 items packed</div>
+    <div class="pack-progress"><div class="pack-bar" id="packBar" style="width:0%"></div></div>
+    <div class="pack-categories" id="packCatFilter">
+      <div class="cat-chip sel" data-cat="all" onclick="filterPack(this)">All</div>
+      <div class="cat-chip" data-cat="Clothes" onclick="filterPack(this)">👕 Clothes</div>
+      <div class="cat-chip" data-cat="Toiletries" onclick="filterPack(this)">🧴 Toiletries</div>
+      <div class="cat-chip" data-cat="Electronics" onclick="filterPack(this)">📱 Electronics</div>
+      <div class="cat-chip" data-cat="Documents" onclick="filterPack(this)">📄 Documents</div>
+      <div class="cat-chip" data-cat="Other" onclick="filterPack(this)">📦 Other</div>
+    </div>
+    <div id="packing-list"></div>
+  </div>
+
+  <!-- BUDGET -->
+  <div id="tab-budget" class="tab-content">
+    <div class="section-header">
+      <h2>Budget Tracker</h2>
+      <button class="btn btn-sm" onclick="openAddExpenseModal()">+ Expense</button>
+    </div>
+    <div class="budget-summary">
+      <div class="budget-card"><div class="bc-label">Total Budget</div><div class="bc-amount neutral" id="bc-total">$0</div></div>
+      <div class="budget-card"><div class="bc-label">Spent</div><div class="bc-amount" id="bc-spent">$0</div></div>
+      <div class="budget-card"><div class="bc-label">Remaining</div><div class="bc-amount" id="bc-remaining">$0</div></div>
+    </div>
+    <div class="donut-wrap">
+      <svg class="donut" width="120" height="120" viewBox="0 0 120 120" id="donutSvg">
+        <circle cx="60" cy="60" r="45" fill="none" stroke="#e8dfd0" stroke-width="18"/>
+        <text x="60" y="65" text-anchor="middle" font-family="Playfair Display" font-size="13" fill="#1a1a2e" id="donutLabel">$0</text>
+      </svg>
+      <div class="donut-legend" id="donutLegend"><p style="color:var(--mist);font-size:0.82rem">No expenses yet</p></div>
+    </div>
+    <div id="expense-list"></div>
+    <div class="card" style="margin-top:16px">
+      <label>Set Total Budget</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="number" id="budgetInput" placeholder="e.g. 3000" style="flex:1">
+        <select id="currencySelect" style="width:90px">
+          <option>USD</option><option>EUR</option><option>GBP</option><option>KES</option><option>JPY</option>
+        </select>
+        <button class="btn" onclick="setBudget()">Set</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div id="tab-journal" class="tab-content">
+    <div class="section-header">
+      <h2>Travel Journal</h2>
+      <button class="btn btn-sm" onclick="openAddNoteModal()">+ New Entry</button>
+    </div>
+    <div id="journal-list">
+      <div class="empty-state"><div class="es-icon">✍️</div><p>No journal entries yet.<br>Capture your memories!</p></div>
+    </div>
+  </div>
+</main>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="destModal">
+  <div class="modal">
+    <h3>Add Destination</h3>
+    <div class="form-row">
+      <div class="field"><label>City / Place</label><input type="text" id="destName" placeholder="e.g. Paris"></div>
+      <div class="field"><label>Emoji Flag</label><input type="text" id="destEmoji" placeholder="🇫🇷" maxlength="4" style="text-align:center;font-size:1.2rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('destModal')">Cancel</button>
+      <button class="btn" id="destSaveBtn" onclick="addDestination()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="eventModal">
+  <div class="modal">
+    <h3>Add Event</h3>
+    <div class="form-row">
+      <div class="field"><label>Date</label><input type="date" id="evDate" min="2025-04-01" max="2025-04-17"></div>
+      <div class="field"><label>Time</label><input type="time" id="evTime"></div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>Title</label><input type="text" id="evTitle" placeholder="e.g. Check in at hotel"></div>
+    <div class="form-row">
+      <div class="field"><label>Category</label>
+        <select id="evCat">
+          <option value="activity">Activity</option><option value="transport">Transport</option>
+          <option value="hotel">Hotel</option><option value="food">Food & Drink</option><option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Destination</label><select id="evDest"></select></div>
+    </div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
+      <button class="btn" id="eventSaveBtn" onclick="addEvent()">Add Event</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="packModal">
+  <div class="modal">
+    <h3>Add Packing Item</h3>
+    <div class="form-row">
+      <div class="field"><label>Item Name</label><input type="text" id="packItemName" placeholder="e.g. Passport"></div>
+      <div class="field"><label>Category</label>
+        <select id="packItemCat">
+          <option>Documents</option><option>Clothes</option><option>Toiletries</option><option>Electronics</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('packModal')">Cancel</button>
+      <button class="btn" id="packSaveBtn" onclick="addPackItem()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="expenseModal">
+  <div class="modal">
+    <h3>Add Expense</h3>
+    <div class="form-row">
+      <div class="field"><label>Description</label><input type="text" id="expName" placeholder="e.g. Hotel night"></div>
+      <div class="field" style="max-width:120px"><label>Amount</label><input type="number" id="expAmount" placeholder="0.00"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Category</label>
+        <select id="expCat">
+          <option>Accommodation</option><option>Transport</option><option>Food</option>
+          <option>Activities</option><option>Shopping</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Date</label><input type="date" id="expDate" min="2025-04-01" max="2025-04-17"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('expenseModal')">Cancel</button>
+      <button class="btn" id="expSaveBtn" onclick="addExpense()">Add Expense</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <h3 id="noteModalTitle">New Journal Entry</h3>
+    <div class="form-row">
+      <div class="field"><label>Title</label><input type="text" id="noteTitle" placeholder="e.g. Arrived in Rome!"></div>
+      <div class="field" style="max-width:160px"><label>Date</label><input type="date" id="noteDate" min="2025-04-01" max="2025-04-17"></div>
+    </div>
+    <div class="field"><label>Entry</label><textarea id="noteBody" rows="4" placeholder="What happened today?"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('noteModal')">Cancel</button>
+      <button class="btn" id="noteSaveBtn" onclick="saveNote()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────
+const API = '/api/trip';
+
+// ── State ───────────────────────────────────────────────────
+let trip = { destinations: [], events: [], packItems: [], expenses: [], notes: [], budget: 0, currency: 'USD' };
+let activeDestFilter = 'all';
+let activePackFilter = 'all';
+let editNoteId = null;
+
+const catColors = { Accommodation:'#d4a853', Transport:'#2980b9', Food:'#8e44ad', Activities:'#27ae60', Shopping:'#e74c3c', Other:'#7a9e7e' };
+const sym = () => ({ USD:'$', EUR:'€', GBP:'£', KES:'KSh', JPY:'¥' })[trip.currency] || '$';
+
+// ── Toast & Sync ─────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function setSyncBadge(state) {
+  const el = document.getElementById('syncBadge');
+  el.className = 'saved'; el.textContent = '✓ Saved';
+  if (state === 'syncing') { el.className = 'syncing'; el.textContent = '↻ Saving…'; }
+  if (state === 'error')   { el.className = 'error';   el.textContent = '✕ Error'; }
+}
+
+// ── API helpers ──────────────────────────────────────────────
+async function api(method, path, body) {
+  setSyncBadge('syncing');
+  try {
+    const r = await fetch(API + path, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    setSyncBadge('saved');
+    return data;
+  } catch(e) {
+    setSyncBadge('error');
+    toast('⚠️ Network error: ' + e.message);
+    throw e;
+  }
+}
+
+// ── Load everything on start ─────────────────────────────────
+async function loadTrip() {
+  try {
+    trip = await api('GET', '');
+    document.getElementById('budgetInput').value = trip.budget || '';
+    document.getElementById('currencySelect').value = trip.currency || 'USD';
+    renderAll();
+    document.getElementById('loader').classList.add('hidden');
+  } catch(e) {
+    document.getElementById('loader').innerHTML = `<p style="color:#c0392b;text-align:center;padding:24px">⚠️ Could not connect to server.<br><small>${e.message}</small></p>`;
+  }
+}
+
+function renderAll() {
+  renderDestChips(); renderItinerary(); renderPacking(); renderBudget(); renderJournal();
+}
+
+// ── Tabs ─────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+// ── DESTINATIONS ─────────────────────────────────────────────
+function openAddDestModal() { document.getElementById('destName').value=''; document.getElementById('destEmoji').value=''; openModal('destModal'); }
+
+async function addDestination() {
+  const name = document.getElementById('destName').value.trim();
+  const emoji = document.getElementById('destEmoji').value.trim() || '📍';
+  if (!name) return;
+  setLoading('destSaveBtn', true);
+  const dest = await api('POST', '/destinations', { name, emoji });
+  trip.destinations.push(dest);
+  closeModal('destModal');
+  renderDestChips(); renderItinerary();
+  setLoading('destSaveBtn', false);
+  toast(`📍 ${emoji} ${name} added!`);
+}
+
+async function removeDest(id) {
+  await api('DELETE', `/destinations/${id}`);
+  trip.destinations = trip.destinations.filter(d => d._id !== id);
+  trip.events = trip.events.map(e => { if(e.dest===id) e.dest=''; return e; });
+  if (activeDestFilter === id) activeDestFilter = 'all';
+  renderDestChips(); renderItinerary();
+}
+
+function filterDest(el) {
+  document.querySelectorAll('#destChips .dest-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeDestFilter = el.dataset.dest;
+  renderItinerary();
+}
+
+function renderDestChips() {
+  const wrap = document.getElementById('destChips');
+  wrap.innerHTML = `<div class="dest-chip ${activeDestFilter==='all'?'active':''}" data-dest="all" onclick="filterDest(this)">📋 All</div>`;
+  trip.destinations.forEach(d => {
+    const c = document.createElement('div');
+    c.className = 'dest-chip' + (activeDestFilter===d._id?' active':'');
+    c.dataset.dest = d._id;
+    c.innerHTML = `${d.emoji} ${d.name} <span style="opacity:0.5;cursor:pointer;margin-left:4px" onclick="removeDest('${d._id}');event.stopPropagation()">×</span>`;
+    c.addEventListener('click', function(e) { if(e.target.tagName!=='SPAN') filterDest(this); });
+    wrap.appendChild(c);
+  });
+  const sel = document.getElementById('evDest');
+  sel.innerHTML = '<option value="">— General —</option>';
+  trip.destinations.forEach(d => sel.innerHTML += `<option value="${d._id}">${d.emoji} ${d.name}</option>`);
+}
+
+// ── EVENTS ───────────────────────────────────────────────────
+function openAddEventModal() {
+  ['evDate','evTime','evTitle','evNote'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('evCat').value='activity';
+  renderDestChips(); openModal('eventModal');
+}
+
+async function addEvent() {
+  const date = document.getElementById('evDate').value;
+  const title = document.getElementById('evTitle').value.trim();
+  if (!date || !title) { toast('Please enter a date and title.'); return; }
+  setLoading('eventSaveBtn', true);
+  const ev = await api('POST', '/events', {
+    date, time: document.getElementById('evTime').value,
+    title, cat: document.getElementById('evCat').value,
+    dest: document.getElementById('evDest').value,
+    note: document.getElementById('evNote').value.trim(),
+  });
+  trip.events.push(ev);
+  closeModal('eventModal'); renderItinerary();
+  setLoading('eventSaveBtn', false);
+  toast('📅 Event added!');
+}
+
+async function removeEvent(id) {
+  await api('DELETE', `/events/${id}`);
+  trip.events = trip.events.filter(e => e._id !== id);
+  renderItinerary();
+}
+
+function renderItinerary() {
+  const list = document.getElementById('itinerary-list');
+  let events = trip.events;
+  if (activeDestFilter !== 'all') events = events.filter(e => e.dest === activeDestFilter);
+  if (!events.length) { list.innerHTML = `<div class="empty-state"><div class="es-icon">🗺️</div><p>No events yet.<br>Add destinations and events!</p></div>`; return; }
+  const byDate = {};
+  events.forEach(e => { if(!byDate[e.date]) byDate[e.date]=[]; byDate[e.date].push(e); });
+  list.innerHTML = Object.keys(byDate).sort().map(date => {
+    const label = new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    return `<div class="day-block">
+      <div class="day-label">📅 ${label}</div>
+      ${byDate[date].sort((a,b)=>a.time.localeCompare(b.time)).map(ev=>`
+        <div class="event-item">
+          <div class="event-time">${ev.time||'—'}</div>
+          <div class="event-body">
+            <div class="event-title">${ev.title}</div>
+            ${ev.note?`<div class="event-note">${ev.note}</div>`:''}
+          </div>
+          <span class="event-tag tag-${ev.cat}">${ev.cat}</span>
+          <button onclick="removeEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem;padding:0 4px">×</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── PACKING ──────────────────────────────────────────────────
+function openAddItemModal() { document.getElementById('packItemName').value=''; openModal('packModal'); }
+
+async function addPackItem() {
+  const name = document.getElementById('packItemName').value.trim();
+  const cat = document.getElementById('packItemCat').value;
+  if (!name) return;
+  setLoading('packSaveBtn', true);
+  const item = await api('POST', '/pack', { name, cat, packed: false });
+  trip.packItems.push(item);
+  closeModal('packModal'); renderPacking();
+  setLoading('packSaveBtn', false);
+  toast('🎒 Item added!');
+}
+
+async function togglePack(id, current) {
+  const item = trip.packItems.find(p => p._id===id);
+  if (!item) return;
+  item.packed = !current;
+  renderPacking(); // optimistic
+  await api('PATCH', `/pack/${id}`, { packed: item.packed });
+}
+
+async function removePackItem(id) {
+  await api('DELETE', `/pack/${id}`);
+  trip.packItems = trip.packItems.filter(p => p._id !== id);
+  renderPacking();
+}
+
+function filterPack(el) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  activePackFilter = el.dataset.cat;
+  renderPacking();
+}
+
+function renderPacking() {
+  const total = trip.packItems.length;
+  const packed = trip.packItems.filter(p=>p.packed).length;
+  document.getElementById('packStats').textContent = `${packed} of ${total} items packed`;
+  document.getElementById('packBar').style.width = total ? (packed/total*100)+'%' : '0%';
+  let items = trip.packItems;
+  if (activePackFilter !== 'all') items = items.filter(p => p.cat===activePackFilter);
+  const list = document.getElementById('packing-list');
+  if (!items.length) { list.innerHTML=`<div class="empty-state"><div class="es-icon">📦</div><p>No items here.</p></div>`; return; }
+  list.innerHTML = items.map(p=>`
+    <div class="pack-item ${p.packed?'packed':''}">
+      <div class="pack-checkbox ${p.packed?'checked':''}" onclick="togglePack('${p._id}',${p.packed})">${p.packed?'✓':''}</div>
+      <span class="item-name">${p.name}</span>
+      <span class="item-cat-badge">${p.cat}</span>
+      <button onclick="removePackItem('${p._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem">×</button>
+    </div>`).join('');
+}
+
+// ── BUDGET ───────────────────────────────────────────────────
+async function setBudget() {
+  const v = parseFloat(document.getElementById('budgetInput').value);
+  const cur = document.getElementById('currencySelect').value;
+  if (isNaN(v) || v <= 0) return;
+  await api('PATCH', '/budget', { budget: v, currency: cur });
+  trip.budget = v; trip.currency = cur;
+  renderBudget(); toast('💰 Budget updated!');
+}
+
+function openAddExpenseModal() {
+  ['expName','expAmount','expDate'].forEach(id=>document.getElementById(id).value='');
+  openModal('expenseModal');
+}
+
+async function addExpense() {
+  const name = document.getElementById('expName').value.trim();
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  if (!name || isNaN(amount) || amount<=0) { toast('Please fill in name and amount.'); return; }
+  setLoading('expSaveBtn', true);
+  const exp = await api('POST', '/expenses', {
+    name, amount, cat: document.getElementById('expCat').value, date: document.getElementById('expDate').value
+  });
+  trip.expenses.push(exp);
+  closeModal('expenseModal'); renderBudget();
+  setLoading('expSaveBtn', false);
+  toast('💳 Expense logged!');
+}
+
+async function removeExpense(id) {
+  await api('DELETE', `/expenses/${id}`);
+  trip.expenses = trip.expenses.filter(e=>e._id!==id);
+  renderBudget();
+}
+
+function renderBudget() {
+  const spent = trip.expenses.reduce((s,e)=>s+e.amount,0);
+  const remaining = trip.budget - spent;
+  const s = sym();
+  document.getElementById('bc-total').textContent = trip.budget ? s+trip.budget.toLocaleString() : s+'0';
+  document.getElementById('bc-spent').textContent = s+spent.toFixed(2);
+  document.getElementById('bc-spent').className = 'bc-amount '+(spent>trip.budget&&trip.budget?'over':'neutral');
+  document.getElementById('bc-remaining').textContent = s+remaining.toFixed(2);
+  document.getElementById('bc-remaining').className = 'bc-amount '+(remaining<0?'over':'ok');
+  document.getElementById('donutLabel').textContent = s+spent.toFixed(0);
+  const svg = document.getElementById('donutSvg');
+  const legend = document.getElementById('donutLegend');
+  Array.from(svg.querySelectorAll('.arc')).forEach(a=>a.remove());
+  if (!trip.expenses.length) { legend.innerHTML='<p style="color:var(--mist);font-size:0.82rem">No expenses yet</p>'; }
+  else {
+    const byCat={};
+    trip.expenses.forEach(e=>{byCat[e.cat]=(byCat[e.cat]||0)+e.amount;});
+    const circ=2*Math.PI*45; let offset=0; legend.innerHTML='';
+    Object.entries(byCat).forEach(([cat,val])=>{
+      const frac=val/Math.max(spent,1);
+      const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('class','arc'); c.setAttribute('cx',60); c.setAttribute('cy',60); c.setAttribute('r',45);
+      c.setAttribute('fill','none'); c.setAttribute('stroke',catColors[cat]||'#999'); c.setAttribute('stroke-width',18);
+      c.setAttribute('stroke-dasharray',`${frac*circ} ${circ-frac*circ}`);
+      c.setAttribute('stroke-dashoffset',-offset*circ);
+      c.setAttribute('transform','rotate(-90 60 60)');
+      svg.insertBefore(c,svg.querySelector('text')); offset+=frac;
+      legend.innerHTML+=`<div class="legend-item"><div class="legend-dot" style="background:${catColors[cat]||'#999'}"></div><span>${cat}: <strong>${s}${val.toFixed(0)}</strong></span></div>`;
+    });
+  }
+  const list=document.getElementById('expense-list');
+  if (!trip.expenses.length) { list.innerHTML=`<div class="empty-state"><div class="es-icon">💳</div><p>No expenses logged yet.</p></div>`; return; }
+  list.innerHTML=trip.expenses.slice().reverse().map(e=>`
+    <div class="expense-row">
+      <div class="exp-cat-dot" style="background:${catColors[e.cat]||'#999'}"></div>
+      <div class="exp-info"><div class="exp-name">${e.name}</div><div class="exp-meta">${e.cat} · ${e.date||'—'}</div></div>
+      <div class="exp-amount">${s}${e.amount.toFixed(2)}</div>
+      <button onclick="removeExpense('${e._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem;margin-left:8px">×</button>
+    </div>`).join('');
+}
+
+// ── JOURNAL ──────────────────────────────────────────────────
+function openAddNoteModal() {
+  editNoteId=null;
+  ['noteTitle','noteDate','noteBody'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('noteModalTitle').textContent='New Journal Entry';
+  openModal('noteModal');
+}
+
+function editNote(id) {
+  const note=trip.notes.find(n=>n._id===id); if(!note) return;
+  editNoteId=id;
+  document.getElementById('noteTitle').value=note.title;
+  document.getElementById('noteDate').value=note.date;
+  document.getElementById('noteBody').value=note.body;
+  document.getElementById('noteModalTitle').textContent='Edit Entry';
+  openModal('noteModal');
+}
+
+async function saveNote() {
+  const title=document.getElementById('noteTitle').value.trim();
+  const date=document.getElementById('noteDate').value;
+  const body=document.getElementById('noteBody').value.trim();
+  if (!title) { toast('Please add a title.'); return; }
+  setLoading('noteSaveBtn',true);
+  if (editNoteId) {
+    const updated=await api('PATCH',`/notes/${editNoteId}`,{title,date,body});
+    const idx=trip.notes.findIndex(n=>n._id===editNoteId);
+    if(idx>=0) trip.notes[idx]=updated;
+    editNoteId=null;
+    toast('✏️ Entry updated!');
+  } else {
+    const note=await api('POST','/notes',{title,date,body});
+    trip.notes.push(note);
+    toast('📓 Entry saved!');
+  }
+  closeModal('noteModal'); renderJournal();
+  setLoading('noteSaveBtn',false);
+}
+
+async function removeNote(id) {
+  await api('DELETE',`/notes/${id}`);
+  trip.notes=trip.notes.filter(n=>n._id!==id);
+  renderJournal();
+}
+
+function renderJournal() {
+  const list=document.getElementById('journal-list');
+  if (!trip.notes.length) { list.innerHTML=`<div class="empty-state"><div class="es-icon">✍️</div><p>No journal entries yet.<br>Capture your memories!</p></div>`; return; }
+  list.innerHTML=trip.notes.slice().reverse().map(n=>`
+    <div class="note-card">
+      <div class="note-date">${n.date?new Date(n.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}):'No date'}</div>
+      <div class="note-title">${n.title}</div>
+      <div class="note-body">${n.body.replace(/\n/g,'<br>')}</div>
+      <div class="note-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editNote('${n._id}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="removeNote('${n._id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── Utilities ────────────────────────────────────────────────
+function setLoading(btnId, loading) {
+  const btn=document.getElementById(btnId);
+  if(!btn) return;
+  btn.disabled=loading;
+  if(loading) btn.dataset.orig=btn.textContent, btn.textContent='…';
+  else btn.textContent=btn.dataset.orig||btn.textContent;
+}
+
+// ── Boot ─────────────────────────────────────────────────────
+loadTrip();
+</script>
+</body>
+</html>
