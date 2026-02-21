@@ -102,6 +102,7 @@
   input:focus, textarea:focus, select:focus { border-color: var(--terracotta); }
   textarea { resize: vertical; min-height: 80px; }
   label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--mist); display: block; margin-bottom: 5px; }
+  .hint { display: block; font-size: 0.72rem; color: var(--mist); margin-top: 4px; font-style: italic; }
   .form-row { display: flex; gap: 10px; margin-bottom: 14px; }
   .field { flex: 1; min-width: 0; }
 
@@ -268,7 +269,7 @@
     <div class="card" style="margin-bottom:20px">
       <label>Set Total Budget</label>
       <div style="display:flex;gap:10px;align-items:center">
-        <input type="number" id="budgetInput" placeholder="e.g. 3000" style="flex:1" title="Set your total trip budget">
+        <input type="number" id="budgetInput" placeholder="e.g. 3000" style="flex:1">
         <select id="currencySelect" style="width:90px">
           <option>USD</option><option>EUR</option><option>GBP</option><option>KES</option><option>JPY</option>
         </select>
@@ -307,8 +308,8 @@
   <div class="modal">
     <h3>Add Destination</h3>
     <div class="form-row">
-      <div class="field"><label>City / Place</label><input type="text" id="destName" placeholder="e.g. Paris" title="Enter the city or place name for this destination"></div>
-      <div class="field"><label>Emoji Flag</label><input type="text" id="destEmoji" placeholder="🇫🇷" maxlength="4" style="text-align:center;font-size:1.2rem" title="Add a flag or emoji to represent this destination"></div>
+      <div class="field"><label>City / Place</label><input type="text" id="destName" placeholder="e.g. Paris"><span class="hint">City or place name for this destination</span></div>
+      <div class="field"><label>Emoji Flag</label><input type="text" id="destEmoji" placeholder="🇫🇷" maxlength="4" style="text-align:center;font-size:1.2rem"><span class="hint">Flag or emoji to represent it</span></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('destModal')">Cancel</button>
@@ -323,22 +324,22 @@
       <h3>Add Event</h3>
       <button class="modal-close" onclick="closeModal('eventModal')">&times;</button>
     </div>
-    <div class="field" style="margin-bottom:12px"><label>Date</label><input type="date" id="evDate" min="2026-04-01" max="2026-04-17" title="Select the date for this event"></div>
-    <div class="field" style="margin-bottom:12px"><label>Time</label><input type="time" id="evTime" title="Set the start time for this event"></div>
-    <div class="field" style="margin-bottom:12px"><label>Title</label><input type="text" id="evTitle" placeholder="e.g. Check in at hotel" title="Give this event a short, descriptive name"></div>
+    <div class="field" style="margin-bottom:12px"><label>Date</label><input type="date" id="evDate" min="2026-04-01" max="2026-04-17"><span class="hint">Apr 1–17, 2026 only</span></div>
+    <div class="field" style="margin-bottom:12px"><label>Time</label><input type="time" id="evTime"><span class="hint">Start time for this event</span></div>
+    <div class="field" style="margin-bottom:12px"><label>Title</label><input type="text" id="evTitle" placeholder="e.g. Check in at hotel"><span class="hint">Short, descriptive name</span></div>
     <div class="form-row">
       <div class="field"><label>Category</label>
-        <select id="evCat" title="Choose what type of event this is">
+        <select id="evCat">
           <option value="activity">Activity</option><option value="transport">Transport</option>
           <option value="hotel">Hotel</option><option value="food">Food & Drink</option><option value="other">Other</option>
         </select>
       </div>
-      <div class="field"><label>Destination</label><select id="evDest" title="Link this event to a destination"></select></div>
+      <div class="field"><label>Destination</label><select id="evDest"></select></div>
     </div>
-    <div class="field" style="margin-bottom:12px"><label>Place / Venue</label><input type="text" id="evPlace" placeholder="e.g. Central Park, Times Square, Empire State Building" title="Enter the specific place or venue name"></div>
+    <div class="field" style="margin-bottom:12px"><label>Place / Venue</label><input type="text" id="evPlace" placeholder="e.g. Central Park, Times Square"><span class="hint">Specific place or venue name</span></div>
     <div class="form-row">
       <div class="field"><label>Duration (optional)</label>
-        <select id="evDuration" title="How long will this event last?">
+        <select id="evDuration">
           <option value="0">— No duration —</option>
           <option value="15">15 minutes</option>
           <option value="30">30 minutes</option>
@@ -355,12 +356,12 @@
         </select>
       </div>
     </div>
-    <div class="field" style="margin-bottom:12px"><label>People (optional)</label><input type="text" id="evPeople" placeholder="e.g. Mom, Dad, Sarah" title="List who's joining this event, separated by commas"></div>
+    <div class="field" style="margin-bottom:12px"><label>People (optional)</label><input type="text" id="evPeople" placeholder="e.g. Mom, Dad, Sarah"><span class="hint">Comma-separated names</span></div>
     <div class="form-row">
-      <div class="field"><label>Cost per item ($)</label><input type="number" id="evCost" placeholder="0.00" min="0" step="0.01" title="Enter the cost per person or per item"></div>
-      <div class="field" style="max-width:100px"><label>Qty</label><input type="number" id="evQty" placeholder="1" min="1" value="1" title="Number of tickets, rooms, or items"></div>
+      <div class="field"><label>Cost per item ($)</label><input type="number" id="evCost" placeholder="0.00" min="0" step="0.01"><span class="hint">Cost per person or item</span></div>
+      <div class="field" style="max-width:100px"><label>Qty</label><input type="number" id="evQty" placeholder="1" min="1" value="1"></div>
     </div>
-    <div class="field"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123" title="Add any extra details like confirmation numbers or reminders"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123"><span class="hint">Confirmation numbers, reminders, etc.</span></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
       <button class="btn" id="eventSaveBtn" onclick="addEvent()">Add Event</button>
@@ -372,9 +373,9 @@
   <div class="modal">
     <h3>Add Packing Item</h3>
     <div class="form-row">
-      <div class="field"><label>Item Name</label><input type="text" id="packItemName" placeholder="e.g. Passport" title="What do you need to pack?"></div>
+      <div class="field"><label>Item Name</label><input type="text" id="packItemName" placeholder="e.g. Passport"></div>
       <div class="field"><label>Category</label>
-        <select id="packItemCat" title="Choose a category to organize your packing list">
+        <select id="packItemCat">
           <option>Documents</option><option>Clothes</option><option>Toiletries</option><option>Electronics</option><option>Other</option>
         </select>
       </div>
@@ -390,17 +391,17 @@
   <div class="modal">
     <h3>Add Expense</h3>
     <div class="form-row">
-      <div class="field"><label>Description</label><input type="text" id="expName" placeholder="e.g. Hotel night" title="Describe what this expense is for"></div>
-      <div class="field" style="max-width:120px"><label>Amount</label><input type="number" id="expAmount" placeholder="0.00" title="Enter the total amount spent"></div>
+      <div class="field"><label>Description</label><input type="text" id="expName" placeholder="e.g. Hotel night"></div>
+      <div class="field" style="max-width:120px"><label>Amount</label><input type="number" id="expAmount" placeholder="0.00"></div>
     </div>
     <div class="form-row">
       <div class="field"><label>Category</label>
-        <select id="expCat" title="Choose a spending category for budget tracking">
+        <select id="expCat">
           <option>Accommodation</option><option>Transport</option><option>Food</option>
           <option>Activities</option><option>Shopping</option><option>Other</option>
         </select>
       </div>
-      <div class="field"><label>Date</label><input type="date" id="expDate" min="2026-04-01" max="2026-04-17" title="When was this expense made?"></div>
+      <div class="field"><label>Date</label><input type="date" id="expDate" min="2026-04-01" max="2026-04-17"><span class="hint">Apr 1–17, 2026 only</span></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('expenseModal')">Cancel</button>
@@ -413,10 +414,10 @@
   <div class="modal">
     <h3 id="noteModalTitle">New Journal Entry</h3>
     <div class="form-row">
-      <div class="field"><label>Title</label><input type="text" id="noteTitle" placeholder="e.g. Arrived in Rome!" title="Give your journal entry a title"></div>
-      <div class="field" style="max-width:160px"><label>Date</label><input type="date" id="noteDate" min="2026-04-01" max="2026-04-17" title="Which day is this entry about?"></div>
+      <div class="field"><label>Title</label><input type="text" id="noteTitle" placeholder="e.g. Arrived in Rome!"></div>
+      <div class="field" style="max-width:160px"><label>Date</label><input type="date" id="noteDate" min="2026-04-01" max="2026-04-17"><span class="hint">Apr 1–17, 2026</span></div>
     </div>
-    <div class="field"><label>Entry</label><textarea id="noteBody" rows="4" placeholder="What happened today?" title="Write about your day — memories, highlights, thoughts"></textarea></div>
+    <div class="field"><label>Entry</label><textarea id="noteBody" rows="4" placeholder="What happened today?"></textarea><span class="hint">Memories, highlights, thoughts</span></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('noteModal')">Cancel</button>
       <button class="btn" id="noteSaveBtn" onclick="saveNote()">Save Entry</button>
@@ -436,6 +437,7 @@ let editNoteId = null;
 
 const catColors = { Accommodation:'#d4a853', Transport:'#2980b9', Food:'#8e44ad', Activities:'#27ae60', Shopping:'#e74c3c', Other:'#7a9e7e' };
 const sym = () => ({ USD:'$', EUR:'€', GBP:'£', KES:'KSh', JPY:'¥' })[trip.currency] || '$';
+function isValidTripDate(d) { return d >= '2026-04-01' && d <= '2026-04-17'; }
 
 // ── Toast & Sync ─────────────────────────────────────────────
 let toastTimer;
@@ -569,6 +571,7 @@ async function addEvent() {
   const date = document.getElementById('evDate').value;
   const title = document.getElementById('evTitle').value.trim();
   if (!date || !title) { toast('Please enter a date and title.'); return; }
+  if (!isValidTripDate(date)) { toast('⚠️ Date must be between Apr 1–17, 2026'); return; }
   setLoading('eventSaveBtn', true);
   const ev = await api('POST', '/events', {
     date, time: document.getElementById('evTime').value,
@@ -698,6 +701,8 @@ async function addExpense() {
   const name = document.getElementById('expName').value.trim();
   const amount = parseFloat(document.getElementById('expAmount').value);
   if (!name || isNaN(amount) || amount<=0) { toast('Please fill in name and amount.'); return; }
+  const expDateVal = document.getElementById('expDate').value;
+  if (expDateVal && !isValidTripDate(expDateVal)) { toast('⚠️ Date must be between Apr 1–17, 2026'); return; }
   setLoading('expSaveBtn', true);
   const exp = await api('POST', '/expenses', {
     name, amount, cat: document.getElementById('expCat').value, date: document.getElementById('expDate').value
@@ -778,6 +783,7 @@ async function saveNote() {
   const date=document.getElementById('noteDate').value;
   const body=document.getElementById('noteBody').value.trim();
   if (!title) { toast('Please add a title.'); return; }
+  if (date && !isValidTripDate(date)) { toast('⚠️ Date must be between Apr 1–17, 2026'); return; }
   setLoading('noteSaveBtn',true);
   if (editNoteId) {
     const updated=await api('PATCH',`/notes/${editNoteId}`,{title,date,body});
