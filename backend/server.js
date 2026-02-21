@@ -27,6 +27,14 @@ async function getTrip() {
   if (!trip) {
     trip = await Trip.create({
       tripId: TRIP_ID,
+      destinations: [
+        { name: 'New York',    emoji: '🗽' },
+        { name: 'Boston',      emoji: '🦞' },
+        { name: 'Florida',     emoji: '🌴' },
+        { name: 'California',  emoji: '🌉' },
+        { name: 'Washington',  emoji: '🏛️' },
+        { name: 'Toronto',     emoji: '🍁' },
+      ],
       packItems: [
         { name: 'Passport',               cat: 'Documents' },
         { name: 'Travel insurance docs',  cat: 'Documents' },
