@@ -626,6 +626,19 @@ async function addEvent() {
     trip.events.push(ev);
     toast('📅 Event added!');
   }
+  // Auto-log expense if event has a cost
+  const totalCost = payload.cost * (payload.qty || 1);
+  if (totalCost > 0) {
+    const catMap = { transport:'Transport', hotel:'Accommodation', food:'Food', activity:'Activities', other:'Other' };
+    const exp = await api('POST', '/expenses', {
+      name: payload.title + (payload.place ? ' — ' + payload.place : ''),
+      amount: totalCost,
+      cat: catMap[payload.cat] || 'Other',
+      date: payload.date,
+    });
+    trip.expenses.push(exp);
+    renderBudget();
+  }
   closeModal('eventModal'); renderItinerary();
   setLoading('eventSaveBtn', false);
 }
