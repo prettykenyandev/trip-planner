@@ -460,7 +460,8 @@ function setSyncBadge(state) {
 
 // ── API helpers ──────────────────────────────────────────────
 async function api(method, path, body) {
-  setSyncBadge('syncing');
+  const isWrite = method !== 'GET';
+  if (isWrite) setSyncBadge('syncing');
   try {
     const r = await fetch(API + path, {
       method, headers: { 'Content-Type': 'application/json' },
@@ -468,7 +469,7 @@ async function api(method, path, body) {
     });
     if (!r.ok) throw new Error(await r.text());
     const data = await r.json();
-    setSyncBadge('saved');
+    if (isWrite) setSyncBadge('saved');
     return data;
   } catch(e) {
     setSyncBadge('error');
