@@ -322,6 +322,7 @@
       </div>
       <div class="field"><label>Destination</label><select id="evDest"></select></div>
     </div>
+    <div class="field" style="margin-bottom:12px"><label>Place / Venue</label><input type="text" id="evPlace" placeholder="e.g. Central Park, Times Square, Empire State Building"></div>
     <div class="form-row">
       <div class="field"><label>Duration (optional)</label>
         <select id="evDuration">
@@ -532,7 +533,7 @@ function renderDestChips() {
 
 // ── EVENTS ───────────────────────────────────────────────────
 function openAddEventModal() {
-  ['evDate','evTime','evTitle','evNote','evPeople'].forEach(id => document.getElementById(id).value='');
+  ['evDate','evTime','evTitle','evNote','evPeople','evPlace'].forEach(id => document.getElementById(id).value='');
   document.getElementById('evCat').value='activity';
   document.getElementById('evDuration').value='0';
   renderDestChips(); openModal('eventModal');
@@ -547,6 +548,7 @@ async function addEvent() {
     date, time: document.getElementById('evTime').value,
     title, cat: document.getElementById('evCat').value,
     dest: document.getElementById('evDest').value,
+    place: document.getElementById('evPlace').value.trim(),
     note: document.getElementById('evNote').value.trim(),
     duration: parseInt(document.getElementById('evDuration').value) || 0,
     people: document.getElementById('evPeople').value.trim(),
@@ -579,6 +581,7 @@ function renderItinerary() {
           <div class="event-time">${ev.time||'—'}</div>
           <div class="event-body">
             <div class="event-title">${ev.title}</div>
+            ${ev.place?`<div class="event-note" style="color:var(--terracotta)">📍 ${ev.place}</div>`:''}
             ${ev.note?`<div class="event-note">${ev.note}</div>`:''}
             <div class="event-meta">
               ${ev.duration?`<span class="event-duration">⏱ ${formatDuration(ev.duration)}</span>`:''}

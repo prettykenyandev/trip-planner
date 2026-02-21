@@ -13,6 +13,7 @@ const EventSchema = new mongoose.Schema({
   title:    { type: String, required: true },
   cat:      { type: String, enum: ['activity','transport','hotel','food','other'], default: 'activity' },
   dest:     { type: String, default: '' },       // destination _id string
+  place:    { type: String, default: '' },        // specific place/venue name
   note:     { type: String, default: '' },
   duration: { type: Number, default: 0 },        // duration in minutes (0 = not set)
   people:   { type: String, default: '' },        // comma-separated names

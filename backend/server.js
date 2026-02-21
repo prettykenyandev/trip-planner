@@ -232,7 +232,7 @@ app.get('/api/trip/events/:id/ics', async (req, res) => {
     }
 
     const dest = ev.dest ? (trip.destinations.find(d => d._id.toString() === ev.dest) || {}) : {};
-    const location = dest.name ? `${dest.emoji || ''} ${dest.name}`.trim() : '';
+    const location = [ev.place, dest.name ? `${dest.emoji || ''} ${dest.name}`.trim() : ''].filter(Boolean).join(', ');
 
     let description = '';
     if (ev.note) description += ev.note;
