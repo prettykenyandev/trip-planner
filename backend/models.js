@@ -8,12 +8,14 @@ const DestinationSchema = new mongoose.Schema({
 
 // ── Event ────────────────────────────────────────────────────
 const EventSchema = new mongoose.Schema({
-  date:  { type: String, required: true },   // 'YYYY-MM-DD'
-  time:  { type: String, default: '' },
-  title: { type: String, required: true },
-  cat:   { type: String, enum: ['activity','transport','hotel','food','other'], default: 'activity' },
-  dest:  { type: String, default: '' },       // destination _id string
-  note:  { type: String, default: '' },
+  date:     { type: String, required: true },   // 'YYYY-MM-DD'
+  time:     { type: String, default: '' },
+  title:    { type: String, required: true },
+  cat:      { type: String, enum: ['activity','transport','hotel','food','other'], default: 'activity' },
+  dest:     { type: String, default: '' },       // destination _id string
+  note:     { type: String, default: '' },
+  duration: { type: Number, default: 0 },        // duration in minutes (0 = not set)
+  people:   { type: String, default: '' },        // comma-separated names
 }, { _id: true });
 
 // ── Pack Item ─────────────────────────────────────────────────

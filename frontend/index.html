@@ -121,6 +121,11 @@
   .tag-activity { background: #eafaf1; color: #27ae60; }
   .tag-food { background: #fdf2f8; color: #8e44ad; }
   .tag-other { background: var(--sand); color: var(--ink); }
+  .event-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+  .event-duration { font-size: 0.75rem; color: var(--mist); display: inline-flex; align-items: center; gap: 3px; }
+  .event-people { font-size: 0.75rem; color: var(--sage); display: inline-flex; align-items: center; gap: 3px; }
+  .btn-calendar { background: none; border: 1px solid var(--sage); color: var(--sage); border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .btn-calendar:hover { background: var(--sage); color: white; }
 
   /* PACKING */
   .pack-categories { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -316,6 +321,26 @@
       </div>
       <div class="field"><label>Destination</label><select id="evDest"></select></div>
     </div>
+    <div class="form-row">
+      <div class="field"><label>Duration (optional)</label>
+        <select id="evDuration">
+          <option value="0">— No duration —</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="90">1.5 hours</option>
+          <option value="120">2 hours</option>
+          <option value="180">3 hours</option>
+          <option value="240">4 hours</option>
+          <option value="360">6 hours</option>
+          <option value="480">8 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">All day</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>People (optional)</label><input type="text" id="evPeople" placeholder="e.g. Mom, Dad, Sarah"></div>
     <div class="field"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
@@ -506,8 +531,9 @@ function renderDestChips() {
 
 // ── EVENTS ───────────────────────────────────────────────────
 function openAddEventModal() {
-  ['evDate','evTime','evTitle','evNote'].forEach(id => document.getElementById(id).value='');
+  ['evDate','evTime','evTitle','evNote','evPeople'].forEach(id => document.getElementById(id).value='');
   document.getElementById('evCat').value='activity';
+  document.getElementById('evDuration').value='0';
   renderDestChips(); openModal('eventModal');
 }
 
@@ -521,6 +547,8 @@ async function addEvent() {
     title, cat: document.getElementById('evCat').value,
     dest: document.getElementById('evDest').value,
     note: document.getElementById('evNote').value.trim(),
+    duration: parseInt(document.getElementById('evDuration').value) || 0,
+    people: document.getElementById('evPeople').value.trim(),
   });
   trip.events.push(ev);
   closeModal('eventModal'); renderItinerary();
@@ -551,6 +579,11 @@ function renderItinerary() {
           <div class="event-body">
             <div class="event-title">${ev.title}</div>
             ${ev.note?`<div class="event-note">${ev.note}</div>`:''}
+            <div class="event-meta">
+              ${ev.duration?`<span class="event-duration">⏱ ${formatDuration(ev.duration)}</span>`:''}
+              ${ev.people?`<span class="event-people">👥 ${ev.people}</span>`:''}
+              <button class="btn-calendar" onclick="downloadICS('${ev._id}')" title="Add to phone calendar">📲 Calendar</button>
+            </div>
           </div>
           <span class="event-tag tag-${ev.cat}">${ev.cat}</span>
           <button onclick="removeEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem;padding:0 4px">×</button>
@@ -747,6 +780,21 @@ function renderJournal() {
         <button class="btn btn-danger btn-sm" onclick="removeNote('${n._id}')">Delete</button>
       </div>
     </div>`).join('');
+}
+
+// ── Calendar export ──────────────────────────────────────────
+function formatDuration(min) {
+  if (min >= 1440) return 'All day';
+  if (min >= 60) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${min}m`;
+}
+
+function downloadICS(eventId) {
+  window.open(`/api/trip/events/${eventId}/ics`, '_blank');
 }
 
 // ── Utilities ────────────────────────────────────────────────

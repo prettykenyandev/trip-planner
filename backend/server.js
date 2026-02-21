@@ -193,6 +193,70 @@ app.delete('/api/trip/notes/:id', async (req, res) => {
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
+// ══════════════════════════════════════════════════════════════
+//  CALENDAR EXPORT (ICS)
+// ══════════════════════════════════════════════════════════════
+app.get('/api/trip/events/:id/ics', async (req, res) => {
+  try {
+    const trip = await getTrip();
+    const ev = trip.events.id(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+
+    const pad = n => String(n).padStart(2, '0');
+    const now = new Date();
+    const stamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth()+1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+    // Build DTSTART
+    let dtStart, dtEnd;
+    if (ev.time) {
+      const [h, m] = ev.time.split(':').map(Number);
+      dtStart = `${ev.date.replace(/-/g, '')}T${pad(h)}${pad(m)}00`;
+      const durMin = ev.duration || 60; // default 1 hour if no duration
+      const startMin = h * 60 + m + durMin;
+      const endH = Math.floor(startMin / 60) % 24;
+      const endM = startMin % 60;
+      dtEnd = `${ev.date.replace(/-/g, '')}T${pad(endH)}${pad(endM)}00`;
+    } else {
+      dtStart = `${ev.date.replace(/-/g, '')}`;  // all-day
+      const nextDay = new Date(ev.date + 'T12:00:00');
+      nextDay.setDate(nextDay.getDate() + 1);
+      dtEnd = `${nextDay.getFullYear()}${pad(nextDay.getMonth()+1)}${pad(nextDay.getDate())}`;
+    }
+
+    const dest = ev.dest ? (trip.destinations.find(d => d._id.toString() === ev.dest) || {}) : {};
+    const location = dest.name ? `${dest.emoji || ''} ${dest.name}`.trim() : '';
+
+    let description = '';
+    if (ev.note) description += ev.note;
+    if (ev.people) description += (description ? '\\n' : '') + 'With: ' + ev.people;
+
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//FamilyTripPlanner//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${ev._id}@trip-planner`,
+      `DTSTAMP:${stamp}`,
+      ev.time ? `DTSTART:${dtStart}` : `DTSTART;VALUE=DATE:${dtStart}`,
+      ev.time ? `DTEND:${dtEnd}` : `DTEND;VALUE=DATE:${dtEnd}`,
+      `SUMMARY:${ev.title}`,
+      location ? `LOCATION:${location}` : '',
+      description ? `DESCRIPTION:${description}` : '',
+      `CATEGORIES:${ev.cat.toUpperCase()}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n');
+
+    res.set({
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${ev.title.replace(/[^a-zA-Z0-9]/g,'_')}.ics"`,
+    });
+    res.send(ics);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Catch-all: serve frontend ──────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
