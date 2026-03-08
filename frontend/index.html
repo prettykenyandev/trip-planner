@@ -172,12 +172,33 @@
   .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.82rem; }
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-  /* JOURNAL */
-  .note-card { background: white; border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; border: 1px solid var(--sand); }
-  .note-card .note-date { font-size: 0.72rem; color: var(--gold); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
-  .note-card .note-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 6px; }
-  .note-card .note-body { font-size: 0.88rem; color: #555; line-height: 1.6; }
-  .note-card .note-actions { display: flex; gap: 8px; margin-top: 12px; }
+  /* TODO */
+  .todo-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--sand); transition: opacity 0.2s; }
+  .todo-item.done { opacity: 0.5; }
+  .todo-item.done .todo-text { text-decoration: line-through; }
+  .todo-checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--sand); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: white; font-size: 0.7rem; }
+  .todo-checkbox.checked { background: var(--sage); border-color: var(--sage); color: white; }
+  .todo-text { flex: 1; font-size: 0.9rem; }
+  .todo-priority { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .priority-high { background: #fdf2f2; color: #e05555; }
+  .priority-medium { background: #fef9e7; color: #d4a853; }
+  .priority-low { background: #eafaf1; color: #27ae60; }
+  .todo-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .todo-stats { font-size: 0.82rem; color: var(--mist); margin-bottom: 8px; }
+  .todo-progress { background: var(--sand); border-radius: 20px; height: 8px; margin-bottom: 20px; overflow: hidden; }
+  .todo-bar { height: 100%; background: var(--sage); border-radius: 20px; transition: width 0.4s ease; }
+
+  /* ATTACHMENTS */
+  .event-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .attachment-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: #f0eee9; color: var(--ink); border: 1px solid var(--sand); text-decoration: none; transition: background 0.2s; max-width: 180px; overflow: hidden; }
+  .attachment-chip:hover { background: var(--sand); }
+  .attachment-chip .att-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .attachment-chip .att-remove { cursor: pointer; color: var(--mist); font-size: 0.85rem; flex-shrink: 0; }
+  .attachment-chip .att-remove:hover { color: #e05555; }
+  .attachment-upload-area { border: 2px dashed var(--sand); border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-top: 12px; }
+  .attachment-upload-area:hover { border-color: var(--terracotta); background: rgba(196,98,45,0.04); }
+  .attachment-upload-area p { font-size: 0.82rem; color: var(--mist); margin: 0; }
+  .attachment-list-modal { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
   .empty-state { text-align: center; padding: 48px 24px; color: var(--mist); }
   .empty-state .es-icon { font-size: 2.5rem; margin-bottom: 12px; }
@@ -230,7 +251,7 @@
   <button class="active" onclick="switchTab('itinerary', this)"><span class="icon">🗺️</span> Itinerary</button>
   <button onclick="switchTab('packing', this)"><span class="icon">🎒</span> Packing</button>
   <button onclick="switchTab('budget', this)"><span class="icon">💰</span> Budget</button>
-  <button onclick="switchTab('journal', this)"><span class="icon">📓</span> Journal</button>
+  <button onclick="switchTab('todos', this)"><span class="icon">✅</span> Todos</button>
 </nav>
 
 <main>
@@ -297,14 +318,21 @@
     <div id="expense-list"></div>
   </div>
 
-  <!-- JOURNAL -->
-  <div id="tab-journal" class="tab-content">
+  <!-- TODOS -->
+  <div id="tab-todos" class="tab-content">
     <div class="section-header">
-      <h2>Travel Journal</h2>
-      <button class="btn btn-sm" onclick="openAddNoteModal()">+ New Entry</button>
+      <h2>To-Do List</h2>
+      <button class="btn btn-sm" onclick="openAddTodoModal()">+ Add Todo</button>
     </div>
-    <div id="journal-list">
-      <div class="empty-state"><div class="es-icon">✍️</div><p>No journal entries yet.<br>Capture your memories!</p></div>
+    <div class="todo-stats" id="todoStats">0 of 0 done</div>
+    <div class="todo-progress"><div class="todo-bar" id="todoBar" style="width:0%"></div></div>
+    <div class="todo-filters" id="todoFilters">
+      <div class="cat-chip sel" data-filter="all" onclick="filterTodo(this)">All</div>
+      <div class="cat-chip" data-filter="active" onclick="filterTodo(this)">Active</div>
+      <div class="cat-chip" data-filter="done" onclick="filterTodo(this)">Done</div>
+    </div>
+    <div id="todo-list">
+      <div class="empty-state"><div class="es-icon">✅</div><p>No todos yet.<br>Add tasks to stay organized!</p></div>
     </div>
   </div>
 </main>
@@ -416,17 +444,23 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="noteModal">
+<div class="modal-overlay" id="todoModal">
   <div class="modal">
-    <h3 id="noteModalTitle">New Journal Entry</h3>
-    <div class="form-row">
-      <div class="field"><label>Title</label><input type="text" id="noteTitle" placeholder="e.g. Arrived in Rome!"></div>
-      <div class="field" style="max-width:160px"><label>Date</label><input type="date" id="noteDate" min="2026-04-01" max="2026-04-17"><span class="hint">Apr 1–17, 2026</span></div>
+    <div class="modal-header">
+      <h3 id="todoModalTitle">Add Todo</h3>
+      <button class="modal-close" onclick="closeModal('todoModal')">&times;</button>
     </div>
-    <div class="field"><label>Entry</label><textarea id="noteBody" rows="4" placeholder="What happened today?"></textarea><span class="hint">Memories, highlights, thoughts</span></div>
+    <div class="field" style="margin-bottom:12px"><label>Task</label><input type="text" id="todoText" placeholder="e.g. Book airport shuttle"><span class="hint">What needs to be done?</span></div>
+    <div class="field" style="margin-bottom:12px"><label>Priority</label>
+      <select id="todoPriority">
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('noteModal')">Cancel</button>
-      <button class="btn" id="noteSaveBtn" onclick="saveNote()">Save Entry</button>
+      <button class="btn btn-ghost" onclick="closeModal('todoModal')">Cancel</button>
+      <button class="btn" id="todoSaveBtn" onclick="saveTodo()">Add Todo</button>
     </div>
   </div>
 </div>
@@ -436,11 +470,12 @@
 const API = '/api/trip';
 
 // ── State ───────────────────────────────────────────────────
-let trip = { destinations: [], events: [], packItems: [], expenses: [], notes: [], budget: 0, currency: 'USD' };
+let trip = { destinations: [], events: [], packItems: [], expenses: [], todos: [], budget: 0, currency: 'USD' };
 let activeDestFilter = 'all';
 let activePackFilter = 'all';
-let editNoteId = null;
+let editTodoId = null;
 let editEventId = null;
+let activeTodoFilter = 'all';
 
 const catColors = { Accommodation:'#d4a853', Transport:'#2980b9', Food:'#8e44ad', Activities:'#27ae60', Shopping:'#e74c3c', Other:'#7a9e7e' };
 const sym = () => ({ USD:'$', EUR:'€', GBP:'£', KES:'KSh', JPY:'¥' })[trip.currency] || '$';
@@ -502,7 +537,7 @@ async function loadTrip() {
 }
 
 function renderAll() {
-  renderDestChips(); renderItinerary(); renderPacking(); renderBudget(); renderJournal();
+  renderDestChips(); renderItinerary(); renderPacking(); renderBudget(); renderTodos();
 }
 
 // ── Tabs ─────────────────────────────────────────────────────
@@ -615,7 +650,9 @@ async function addEvent() {
     cost: parseFloat(document.getElementById('evCost').value) || 0,
     qty: parseInt(document.getElementById('evQty').value) || 1,
   };
+  let wasEdit = false;
   if (editEventId) {
+    wasEdit = true;
     const updated = await api('PATCH', `/events/${editEventId}`, payload);
     const idx = trip.events.findIndex(e => e._id === editEventId);
     if (idx >= 0) trip.events[idx] = updated;
@@ -626,18 +663,20 @@ async function addEvent() {
     trip.events.push(ev);
     toast('📅 Event added!');
   }
-  // Auto-log expense if event has a cost
-  const totalCost = payload.cost * (payload.qty || 1);
-  if (totalCost > 0) {
-    const catMap = { transport:'Transport', hotel:'Accommodation', food:'Food', activity:'Activities', other:'Other' };
-    const exp = await api('POST', '/expenses', {
-      name: payload.title + (payload.place ? ' — ' + payload.place : ''),
-      amount: totalCost,
-      cat: catMap[payload.cat] || 'Other',
-      date: payload.date,
-    });
-    trip.expenses.push(exp);
-    renderBudget();
+  // Auto-log expense if event has a cost (only for new events, not edits)
+  if (!wasEdit) {
+    const totalCost = payload.cost * (payload.qty || 1);
+    if (totalCost > 0) {
+      const catMap = { transport:'Transport', hotel:'Accommodation', food:'Food', activity:'Activities', other:'Other' };
+      const exp = await api('POST', '/expenses', {
+        name: payload.title + (payload.place ? ' — ' + payload.place : ''),
+        amount: totalCost,
+        cat: catMap[payload.cat] || 'Other',
+        date: payload.date,
+      });
+      trip.expenses.push(exp);
+      renderBudget();
+    }
   }
   closeModal('eventModal'); renderItinerary();
   setLoading('eventSaveBtn', false);
@@ -685,6 +724,8 @@ function renderItinerary() {
               ${ev.cost?`<span class="event-cost">💵 ${sym()}${ev.cost}${ev.qty>1?' × '+ev.qty+' = '+sym()+(ev.cost*ev.qty).toFixed(2):''}</span>`:''}
               <button class="btn-calendar" onclick="downloadICS('${ev._id}')" title="Add to phone calendar">📲 Calendar</button>
             </div>
+            ${(ev.attachments&&ev.attachments.length)?`<div class="event-attachments">${ev.attachments.map(a=>`<a href="${a.path}" target="_blank" class="attachment-chip" title="${a.name}"><span>📎</span><span class="att-name">${a.name}</span><span class="att-remove" onclick="removeAttachment('${ev._id}','${a._id}');event.preventDefault();event.stopPropagation()">×</span></a>`).join('')}</div>`:''}
+            <button class="btn-calendar" style="margin-top:6px" onclick="openAttachmentUpload('${ev._id}')" title="Add attachments">📎 Attach</button>
           </div>
           <span class="event-tag tag-${ev.cat}">${ev.cat}</span>
           <button onclick="editEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--terracotta);font-size:0.85rem;padding:0 4px" title="Edit">✏️</button>
@@ -832,65 +873,127 @@ function renderBudget() {
     </div>`).join('');
 }
 
-// ── JOURNAL ──────────────────────────────────────────────────
-function openAddNoteModal() {
-  editNoteId=null;
-  ['noteTitle','noteDate','noteBody'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('noteModalTitle').textContent='New Journal Entry';
-  openModal('noteModal');
+// ── TODOS ────────────────────────────────────────────────────
+function openAddTodoModal() {
+  editTodoId=null;
+  document.getElementById('todoText').value='';
+  document.getElementById('todoPriority').value='medium';
+  document.getElementById('todoModalTitle').textContent='Add Todo';
+  document.getElementById('todoSaveBtn').textContent='Add Todo';
+  openModal('todoModal');
 }
 
-function editNote(id) {
-  const note=trip.notes.find(n=>n._id===id); if(!note) return;
-  editNoteId=id;
-  document.getElementById('noteTitle').value=note.title;
-  document.getElementById('noteDate').value=note.date;
-  document.getElementById('noteBody').value=note.body;
-  document.getElementById('noteModalTitle').textContent='Edit Entry';
-  openModal('noteModal');
+function editTodo(id) {
+  const todo=trip.todos.find(t=>t._id===id); if(!todo) return;
+  editTodoId=id;
+  document.getElementById('todoText').value=todo.text;
+  document.getElementById('todoPriority').value=todo.priority||'medium';
+  document.getElementById('todoModalTitle').textContent='Edit Todo';
+  document.getElementById('todoSaveBtn').textContent='Save Changes';
+  openModal('todoModal');
 }
 
-async function saveNote() {
-  const title=document.getElementById('noteTitle').value.trim();
-  const date=document.getElementById('noteDate').value;
-  const body=document.getElementById('noteBody').value.trim();
-  if (!title) { toast('Please add a title.'); return; }
-  if (date && !isValidTripDate(date)) { toast('⚠️ Date must be between Apr 1–17, 2026'); return; }
-  setLoading('noteSaveBtn',true);
-  if (editNoteId) {
-    const updated=await api('PATCH',`/notes/${editNoteId}`,{title,date,body});
-    const idx=trip.notes.findIndex(n=>n._id===editNoteId);
-    if(idx>=0) trip.notes[idx]=updated;
-    editNoteId=null;
-    toast('✏️ Entry updated!');
+async function saveTodo() {
+  const text=document.getElementById('todoText').value.trim();
+  const priority=document.getElementById('todoPriority').value;
+  if (!text) { toast('Please enter a task.'); return; }
+  setLoading('todoSaveBtn',true);
+  if (editTodoId) {
+    const updated=await api('PATCH',`/todos/${editTodoId}`,{text,priority});
+    const idx=trip.todos.findIndex(t=>t._id===editTodoId);
+    if(idx>=0) trip.todos[idx]=updated;
+    editTodoId=null;
+    toast('✏️ Todo updated!');
   } else {
-    const note=await api('POST','/notes',{title,date,body});
-    trip.notes.push(note);
-    toast('📓 Entry saved!');
+    const todo=await api('POST','/todos',{text,priority,done:false});
+    trip.todos.push(todo);
+    toast('✅ Todo added!');
   }
-  closeModal('noteModal'); renderJournal();
-  setLoading('noteSaveBtn',false);
+  closeModal('todoModal'); renderTodos();
+  setLoading('todoSaveBtn',false);
 }
 
-async function removeNote(id) {
-  await api('DELETE',`/notes/${id}`);
-  trip.notes=trip.notes.filter(n=>n._id!==id);
-  renderJournal();
+async function toggleTodo(id,current) {
+  const todo=trip.todos.find(t=>t._id===id); if(!todo) return;
+  todo.done=!current;
+  renderTodos();
+  await api('PATCH',`/todos/${id}`,{done:todo.done});
 }
 
-function renderJournal() {
-  const list=document.getElementById('journal-list');
-  if (!trip.notes.length) { list.innerHTML=`<div class="empty-state"><div class="es-icon">✍️</div><p>No journal entries yet.<br>Capture your memories!</p></div>`; return; }
-  list.innerHTML=trip.notes.slice().reverse().map(n=>`
-    <div class="note-card">
-      <div class="note-date">${n.date?new Date(n.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}):'No date'}</div>
-      <div class="note-title">${n.title}</div>
-      <div class="note-body">${n.body.replace(/\n/g,'<br>')}</div>
-      <div class="note-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editNote('${n._id}')">✏️ Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="removeNote('${n._id}')">Delete</button>
-      </div>
+async function removeTodo(id) {
+  await api('DELETE',`/todos/${id}`);
+  trip.todos=trip.todos.filter(t=>t._id!==id);
+  renderTodos();
+}
+
+function filterTodo(el) {
+  document.querySelectorAll('#todoFilters .cat-chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  activeTodoFilter=el.dataset.filter;
+  renderTodos();
+}
+
+function renderTodos() {
+  const total=trip.todos.length;
+  const doneCount=trip.todos.filter(t=>t.done).length;
+  document.getElementById('todoStats').textContent=`${doneCount} of ${total} done`;
+  document.getElementById('todoBar').style.width=total?(doneCount/total*100)+'%':'0%';
+  let items=trip.todos;
+  if(activeTodoFilter==='active') items=items.filter(t=>!t.done);
+  if(activeTodoFilter==='done') items=items.filter(t=>t.done);
+  const list=document.getElementById('todo-list');
+  if(!items.length) { list.innerHTML=`<div class="empty-state"><div class="es-icon">✅</div><p>${activeTodoFilter==='done'?'No completed todos yet.':activeTodoFilter==='active'?'All done! 🎉':'No todos yet.<br>Add tasks to stay organized!'}</p></div>`; return; }
+  // Sort: incomplete first, then by priority (high > medium > low)
+  const prioOrder={high:0,medium:1,low:2};
+  items=[...items].sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return (prioOrder[a.priority]||1)-(prioOrder[b.priority]||1);
+  });
+  list.innerHTML=items.map(t=>`
+    <div class="todo-item ${t.done?'done':''}">
+      <div class="todo-checkbox ${t.done?'checked':''}" onclick="toggleTodo('${t._id}',${t.done})">${t.done?'✓':''}</div>
+      <span class="todo-text">${t.text}</span>
+      <span class="todo-priority priority-${t.priority||'medium'}">${t.priority||'medium'}</span>
+      <button onclick="editTodo('${t._id}')" style="background:none;border:none;cursor:pointer;color:var(--terracotta);font-size:0.85rem;padding:0 4px" title="Edit">✏️</button>
+      <button onclick="removeTodo('${t._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem;padding:0 4px">×</button>
     </div>`).join('');
+}
+
+// ── ATTACHMENTS ──────────────────────────────────────────────
+function openAttachmentUpload(eventId) {
+  const input=document.createElement('input');
+  input.type='file'; input.multiple=true;
+  input.accept='image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv';
+  input.onchange=async()=>{
+    if(!input.files.length) return;
+    const formData=new FormData();
+    for(const f of input.files) formData.append('files',f);
+    setSyncBadge('syncing');
+    try {
+      const r=await fetch(`${API}/events/${eventId}/attachments`,{method:'POST',body:formData});
+      if(!r.ok) throw new Error(await r.text());
+      const attachments=await r.json();
+      const ev=trip.events.find(e=>e._id===eventId);
+      if(ev) ev.attachments=attachments;
+      renderItinerary();
+      setSyncBadge('saved');
+      toast('📎 Attachment(s) added!');
+    } catch(e) {
+      setSyncBadge('error');
+      toast('⚠️ Upload failed: '+e.message);
+    }
+  };
+  input.click();
+}
+
+async function removeAttachment(eventId,attachId) {
+  try {
+    await api('DELETE',`/events/${eventId}/attachments/${attachId}`);
+    const ev=trip.events.find(e=>e._id===eventId);
+    if(ev) ev.attachments=ev.attachments.filter(a=>a._id!==attachId);
+    renderItinerary();
+    toast('Attachment removed');
+  } catch(e) { toast('⚠️ '+e.message); }
 }
 
 // ── Calendar export ──────────────────────────────────────────

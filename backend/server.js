@@ -3,6 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const Trip = require('./models');
 
 const app = express();
@@ -10,11 +12,28 @@ const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
 const TRIP_ID = 'family-trip-2025';
 
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+// Multer config for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + '-' + file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_'));
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
+
 app.use(cors());
 app.use(express.json());
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Serve uploaded files
+app.use('/uploads', express.static(uploadsDir));
 
 // ── DB connect ───────────────────────────────────────────────
 mongoose.connect(MONGO_URI)
@@ -181,32 +200,68 @@ app.delete('/api/trip/expenses/:id', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
-//  JOURNAL
+//  EVENT ATTACHMENTS
 // ══════════════════════════════════════════════════════════════
-app.post('/api/trip/notes', async (req, res) => {
+app.post('/api/trip/events/:id/attachments', upload.array('files', 10), async (req, res) => {
   try {
     const trip = await getTrip();
-    trip.notes.push(req.body);
+    const ev = trip.events.id(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const newAttachments = req.files.map(f => ({
+      name: f.originalname,
+      path: '/uploads/' + f.filename,
+      mimetype: f.mimetype,
+      size: f.size,
+    }));
+    ev.attachments.push(...newAttachments);
     await trip.save();
-    res.json(trip.notes.at(-1));
+    res.json(ev.attachments);
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-app.patch('/api/trip/notes/:id', async (req, res) => {
+app.delete('/api/trip/events/:eventId/attachments/:attachId', async (req, res) => {
   try {
     const trip = await getTrip();
-    const note = trip.notes.id(req.params.id);
-    if (!note) return res.status(404).json({ error: 'Not found' });
-    Object.assign(note, req.body);
+    const ev = trip.events.id(req.params.eventId);
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    const att = ev.attachments.id(req.params.attachId);
+    if (!att) return res.status(404).json({ error: 'Attachment not found' });
+    // Delete file from disk
+    const filePath = path.join(__dirname, att.path);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    ev.attachments = ev.attachments.filter(a => a._id.toString() !== req.params.attachId);
     await trip.save();
-    res.json(note);
+    res.json({ ok: true });
   } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
-app.delete('/api/trip/notes/:id', async (req, res) => {
+// ══════════════════════════════════════════════════════════════
+//  TODOS
+// ══════════════════════════════════════════════════════════════
+app.post('/api/trip/todos', async (req, res) => {
   try {
     const trip = await getTrip();
-    trip.notes = trip.notes.filter(n => n._id.toString() !== req.params.id);
+    trip.todos.push(req.body);
+    await trip.save();
+    res.json(trip.todos.at(-1));
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.patch('/api/trip/todos/:id', async (req, res) => {
+  try {
+    const trip = await getTrip();
+    const todo = trip.todos.id(req.params.id);
+    if (!todo) return res.status(404).json({ error: 'Not found' });
+    Object.assign(todo, req.body);
+    await trip.save();
+    res.json(todo);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.delete('/api/trip/todos/:id', async (req, res) => {
+  try {
+    const trip = await getTrip();
+    trip.todos = trip.todos.filter(t => t._id.toString() !== req.params.id);
     await trip.save();
     res.json({ ok: true });
   } catch (err) { res.status(400).json({ error: err.message }); }
