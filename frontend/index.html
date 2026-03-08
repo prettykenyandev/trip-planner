@@ -275,6 +275,7 @@
   <div id="tab-attachments" class="tab-content">
     <div class="section-header">
       <h2>Attachments</h2>
+      <button class="btn btn-sm" onclick="openAttTabUpload()">+ Upload</button>
     </div>
     <div class="att-tab-stats" id="attStats">0 files across 0 events</div>
     <div class="att-tab-filters" id="attTypeFilter">
@@ -395,7 +396,17 @@
       <div class="field"><label>Cost per item ($)</label><input type="number" id="evCost" placeholder="0.00" min="0" step="0.01"><span class="hint">Cost per person or item</span></div>
       <div class="field" style="max-width:100px"><label>Qty</label><input type="number" id="evQty" placeholder="1" min="1" value="1"></div>
     </div>
-    <div class="field"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123"><span class="hint">Confirmation numbers, reminders, etc.</span></div>
+    <div class="field" style="margin-bottom:12px"><label>Note (optional)</label><input type="text" id="evNote" placeholder="e.g. Confirmation #123"><span class="hint">Confirmation numbers, reminders, etc.</span></div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Attachments</label>
+      <div class="attachment-upload-area" onclick="document.getElementById('evFiles').click()">
+        <p>📎 Click to select files</p>
+        <p style="font-size:0.7rem;margin-top:4px">Images, PDFs, documents (max 10MB each)</p>
+      </div>
+      <input type="file" id="evFiles" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv" style="display:none" onchange="updateEvFilesPreview()">
+      <div id="evFilesPending" class="attachment-list-modal"></div>
+      <div id="evFilesExisting" class="attachment-list-modal" style="margin-top:6px"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('eventModal')">Cancel</button>
       <button class="btn" id="eventSaveBtn" onclick="addEvent()">Add Event</button>
@@ -585,21 +596,55 @@ function renderDestChips() {
 }
 
 // ── EVENTS ───────────────────────────────────────────────────
+let pendingEvFiles = [];
+
 function openAddEventModal() {
   editEventId = null;
+  pendingEvFiles = [];
   ['evDate','evTime','evTitle','evNote','evPeople','evPlace','evCost'].forEach(id => document.getElementById(id).value='');
   document.getElementById('evCat').value='activity';
   document.getElementById('evDuration').value='0';
   document.getElementById('evQty').value='1';
+  document.getElementById('evFiles').value='';
+  document.getElementById('evFilesPending').innerHTML='';
+  document.getElementById('evFilesExisting').innerHTML='';
   document.querySelector('#eventModal .modal-header h3').textContent = 'Add Event';
   document.getElementById('eventSaveBtn').textContent = 'Add Event';
   renderDestChips(); openModal('eventModal');
+}
+
+function updateEvFilesPreview() {
+  const input = document.getElementById('evFiles');
+  for (const f of input.files) pendingEvFiles.push(f);
+  input.value = '';
+  renderEvFilesPending();
+}
+
+function removePendingFile(idx) {
+  pendingEvFiles.splice(idx, 1);
+  renderEvFilesPending();
+}
+
+function renderEvFilesPending() {
+  const wrap = document.getElementById('evFilesPending');
+  if (!pendingEvFiles.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = pendingEvFiles.map((f, i) => `<span class="attachment-chip"><span>📎</span><span class="att-name">${f.name}</span><span class="att-remove" onclick="removePendingFile(${i})">×</span></span>`).join('');
+}
+
+function renderEvFilesExisting(eventId) {
+  const wrap = document.getElementById('evFilesExisting');
+  if (!eventId) { wrap.innerHTML = ''; return; }
+  const ev = trip.events.find(e => e._id === eventId);
+  if (!ev || !ev.attachments || !ev.attachments.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--mist);margin-bottom:4px;width:100%">Existing files:</div>' +
+    ev.attachments.map(a => `<a href="${a.path}" target="_blank" class="attachment-chip" title="${a.name}"><span>📎</span><span class="att-name">${a.name}</span><span class="att-remove" onclick="removeAttachment('${eventId}','${a._id}');renderEvFilesExisting('${eventId}');event.preventDefault();event.stopPropagation()">×</span></a>`).join('');
 }
 
 function editEvent(id) {
   const ev = trip.events.find(e => e._id === id);
   if (!ev) return;
   editEventId = id;
+  pendingEvFiles = [];
   document.getElementById('evDate').value = ev.date || '';
   document.getElementById('evTime').value = ev.time || '';
   document.getElementById('evTitle').value = ev.title || '';
@@ -610,8 +655,11 @@ function editEvent(id) {
   document.getElementById('evCost').value = ev.cost || '';
   document.getElementById('evQty').value = ev.qty || 1;
   document.getElementById('evNote').value = ev.note || '';
+  document.getElementById('evFiles').value = '';
+  document.getElementById('evFilesPending').innerHTML = '';
   renderDestChips();
   document.getElementById('evDest').value = ev.dest || '';
+  renderEvFilesExisting(id);
   document.querySelector('#eventModal .modal-header h3').textContent = 'Edit Event';
   document.getElementById('eventSaveBtn').textContent = 'Save Changes';
   openModal('eventModal');
@@ -635,8 +683,10 @@ async function addEvent() {
     qty: parseInt(document.getElementById('evQty').value) || 1,
   };
   let wasEdit = false;
+  let savedEventId = null;
   if (editEventId) {
     wasEdit = true;
+    savedEventId = editEventId;
     const updated = await api('PATCH', `/events/${editEventId}`, payload);
     const idx = trip.events.findIndex(e => e._id === editEventId);
     if (idx >= 0) trip.events[idx] = updated;
@@ -645,6 +695,7 @@ async function addEvent() {
   } else {
     const ev = await api('POST', '/events', payload);
     trip.events.push(ev);
+    savedEventId = ev._id;
     toast('📅 Event added!');
   }
   // Auto-log expense if event has a cost (only for new events, not edits)
@@ -662,7 +713,21 @@ async function addEvent() {
       renderBudget();
     }
   }
-  closeModal('eventModal'); renderItinerary();
+  // Upload any pending attachments
+  if (pendingEvFiles.length && savedEventId) {
+    const formData = new FormData();
+    for (const f of pendingEvFiles) formData.append('files', f);
+    try {
+      const r = await fetch(`${API}/events/${savedEventId}/attachments`, { method: 'POST', body: formData });
+      if (r.ok) {
+        const attachments = await r.json();
+        const ev = trip.events.find(e => e._id === savedEventId);
+        if (ev) ev.attachments = attachments;
+      }
+    } catch(e) { /* silent */ }
+    pendingEvFiles = [];
+  }
+  closeModal('eventModal'); renderItinerary(); renderAttachmentsTab();
   setLoading('eventSaveBtn', false);
 }
 
@@ -709,7 +774,6 @@ function renderItinerary() {
               <button class="btn-calendar" onclick="downloadICS('${ev._id}')" title="Add to phone calendar">📲 Calendar</button>
             </div>
             ${(ev.attachments&&ev.attachments.length)?`<div class="event-attachments">${ev.attachments.map(a=>`<a href="${a.path}" target="_blank" class="attachment-chip" title="${a.name}"><span>📎</span><span class="att-name">${a.name}</span><span class="att-remove" onclick="removeAttachment('${ev._id}','${a._id}');event.preventDefault();event.stopPropagation()">×</span></a>`).join('')}</div>`:''}
-            <button class="btn-calendar" style="margin-top:6px" onclick="openAttachmentUpload('${ev._id}')" title="Add attachments">📎 Attach</button>
           </div>
           <span class="event-tag tag-${ev.cat}">${ev.cat}</span>
           <button onclick="editEvent('${ev._id}')" style="background:none;border:none;cursor:pointer;color:var(--terracotta);font-size:0.85rem;padding:0 4px" title="Edit">✏️</button>
@@ -960,31 +1024,71 @@ function renderTodos() {
 }
 
 // ── ATTACHMENTS ──────────────────────────────────────────────
-function openAttachmentUpload(eventId) {
-  const input=document.createElement('input');
-  input.type='file'; input.multiple=true;
-  input.accept='image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv';
-  input.onchange=async()=>{
-    if(!input.files.length) return;
-    const formData=new FormData();
-    for(const f of input.files) formData.append('files',f);
-    setSyncBadge('syncing');
-    try {
-      const r=await fetch(`${API}/events/${eventId}/attachments`,{method:'POST',body:formData});
-      if(!r.ok) throw new Error(await r.text());
-      const attachments=await r.json();
-      const ev=trip.events.find(e=>e._id===eventId);
-      if(ev) ev.attachments=attachments;
-      renderItinerary();
-      renderAttachmentsTab();
-      setSyncBadge('saved');
-      toast('📎 Attachment(s) added!');
-    } catch(e) {
-      setSyncBadge('error');
-      toast('⚠️ Upload failed: '+e.message);
-    }
-  };
-  input.click();
+async function uploadFilesToEvent(eventId, files) {
+  const formData = new FormData();
+  for (const f of files) formData.append('files', f);
+  setSyncBadge('syncing');
+  try {
+    const r = await fetch(`${API}/events/${eventId}/attachments`, { method: 'POST', body: formData });
+    if (!r.ok) throw new Error(await r.text());
+    const attachments = await r.json();
+    const ev = trip.events.find(e => e._id === eventId);
+    if (ev) ev.attachments = attachments;
+    renderItinerary();
+    renderAttachmentsTab();
+    setSyncBadge('saved');
+    toast('📎 Attachment(s) added!');
+  } catch(e) {
+    setSyncBadge('error');
+    toast('⚠️ Upload failed: ' + e.message);
+  }
+}
+
+function openAttTabUpload() {
+  // Build event picker for attaching files from the attachments tab
+  if (!trip.events.length) { toast('Add events first before uploading files.'); return; }
+  const sel = document.createElement('select');
+  sel.style.cssText = 'display:none';
+  // Use a modal approach: create a quick picker
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay open';
+  overlay.innerHTML = `<div class="modal" style="max-width:380px">
+    <div class="modal-header"><h3>Upload to Event</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+    <div class="field" style="margin-bottom:12px"><label>Select Event</label>
+      <select id="attTabEventPicker">
+        ${trip.events.map(ev => {
+          const d = ev.date ? new Date(ev.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+          return `<option value="${ev._id}">${d ? d+' — ' : ''}${ev.title}</option>`;
+        }).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <div class="attachment-upload-area" onclick="document.getElementById('attTabFiles').click()">
+        <p>📎 Click to select files</p>
+        <p style="font-size:0.7rem;margin-top:4px">Images, PDFs, documents (max 10MB each)</p>
+      </div>
+      <input type="file" id="attTabFiles" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv" style="display:none">
+      <div id="attTabFilesPreview" class="attachment-list-modal" style="margin-top:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+      <button class="btn" id="attTabUploadBtn" onclick="doAttTabUpload(this.closest('.modal-overlay'))">Upload</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('attTabFiles').addEventListener('change', function() {
+    const preview = document.getElementById('attTabFilesPreview');
+    preview.innerHTML = Array.from(this.files).map(f => `<span class="attachment-chip"><span>📎</span><span class="att-name">${f.name}</span></span>`).join('');
+  });
+}
+
+async function doAttTabUpload(overlay) {
+  const eventId = document.getElementById('attTabEventPicker').value;
+  const files = document.getElementById('attTabFiles').files;
+  if (!files.length) { toast('Please select files first.'); return; }
+  overlay.remove();
+  await uploadFilesToEvent(eventId, files);
 }
 
 async function removeAttachment(eventId,attachId) {
