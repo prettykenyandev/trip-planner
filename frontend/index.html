@@ -137,20 +137,23 @@
   .btn-calendar { background: none; border: 1px solid var(--sage); color: var(--sage); border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .btn-calendar:hover { background: var(--sage); color: white; }
 
-  /* PACKING */
-  .pack-categories { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  /* ATTACHMENTS TAB */
   .cat-chip { padding: 6px 14px; border-radius: 16px; font-size: 0.78rem; font-weight: 500; cursor: pointer; border: 1.5px solid var(--sand); background: white; transition: all 0.2s; }
   .cat-chip.sel { background: var(--ink); color: white; border-color: var(--ink); }
-  .pack-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--sand); transition: opacity 0.2s; }
-  .pack-item.packed { opacity: 0.5; }
-  .pack-item.packed .item-name { text-decoration: line-through; }
-  .pack-checkbox { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--sand); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: white; font-size: 0.7rem; }
-  .pack-checkbox.checked { background: var(--sage); border-color: var(--sage); color: white; }
-  .item-name { flex: 1; font-size: 0.9rem; }
-  .item-cat-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--sand); color: var(--ink); font-weight: 500; }
-  .pack-progress { background: var(--sand); border-radius: 20px; height: 8px; margin-bottom: 20px; overflow: hidden; }
-  .pack-bar { height: 100%; background: var(--sage); border-radius: 20px; transition: width 0.4s ease; }
-  .pack-stats { font-size: 0.82rem; color: var(--mist); margin-bottom: 8px; }
+  .att-tab-card { background: white; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; border: 1px solid var(--sand); }
+  .att-tab-card .att-event-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .att-tab-card .att-event-date { font-size: 0.72rem; color: var(--gold); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .att-tab-files { display: flex; flex-wrap: wrap; gap: 8px; }
+  .att-file-card { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--paper); border-radius: 8px; border: 1px solid var(--sand); text-decoration: none; color: var(--ink); transition: all 0.2s; max-width: 260px; min-width: 160px; }
+  .att-file-card:hover { border-color: var(--terracotta); background: #fdf8f4; }
+  .att-file-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .att-file-info { flex: 1; min-width: 0; }
+  .att-file-name { font-size: 0.82rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .att-file-size { font-size: 0.7rem; color: var(--mist); }
+  .att-file-remove { background: none; border: none; cursor: pointer; color: var(--mist); font-size: 1rem; padding: 0 2px; flex-shrink: 0; transition: color 0.2s; }
+  .att-file-remove:hover { color: #e05555; }
+  .att-tab-stats { font-size: 0.82rem; color: var(--mist); margin-bottom: 16px; }
+  .att-tab-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 
   /* BUDGET */
   .budget-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
@@ -249,7 +252,7 @@
 
 <nav>
   <button class="active" onclick="switchTab('itinerary', this)"><span class="icon">🗺️</span> Itinerary</button>
-  <button onclick="switchTab('packing', this)"><span class="icon">🎒</span> Packing</button>
+  <button onclick="switchTab('attachments', this)"><span class="icon">📎</span> Attachments</button>
   <button onclick="switchTab('budget', this)"><span class="icon">💰</span> Budget</button>
   <button onclick="switchTab('todos', this)"><span class="icon">✅</span> Todos</button>
 </nav>
@@ -268,23 +271,20 @@
     <button class="btn" style="width:100%;justify-content:center" onclick="openAddEventModal()">+ Add Event</button>
   </div>
 
-  <!-- PACKING -->
-  <div id="tab-packing" class="tab-content">
+  <!-- ATTACHMENTS -->
+  <div id="tab-attachments" class="tab-content">
     <div class="section-header">
-      <h2>Packing List</h2>
-      <button class="btn btn-sm" onclick="openAddItemModal()">+ Add Item</button>
+      <h2>Attachments</h2>
     </div>
-    <div class="pack-stats" id="packStats">0 of 0 items packed</div>
-    <div class="pack-progress"><div class="pack-bar" id="packBar" style="width:0%"></div></div>
-    <div class="pack-categories" id="packCatFilter">
-      <div class="cat-chip sel" data-cat="all" onclick="filterPack(this)">All</div>
-      <div class="cat-chip" data-cat="Clothes" onclick="filterPack(this)">👕 Clothes</div>
-      <div class="cat-chip" data-cat="Toiletries" onclick="filterPack(this)">🧴 Toiletries</div>
-      <div class="cat-chip" data-cat="Electronics" onclick="filterPack(this)">📱 Electronics</div>
-      <div class="cat-chip" data-cat="Documents" onclick="filterPack(this)">📄 Documents</div>
-      <div class="cat-chip" data-cat="Other" onclick="filterPack(this)">📦 Other</div>
+    <div class="att-tab-stats" id="attStats">0 files across 0 events</div>
+    <div class="att-tab-filters" id="attTypeFilter">
+      <div class="cat-chip sel" data-type="all" onclick="filterAttTab(this)">All</div>
+      <div class="cat-chip" data-type="image" onclick="filterAttTab(this)">🖼️ Images</div>
+      <div class="cat-chip" data-type="pdf" onclick="filterAttTab(this)">📄 PDFs</div>
+      <div class="cat-chip" data-type="doc" onclick="filterAttTab(this)">📝 Docs</div>
+      <div class="cat-chip" data-type="other" onclick="filterAttTab(this)">📦 Other</div>
     </div>
-    <div id="packing-list"></div>
+    <div id="attachments-list"></div>
   </div>
 
   <!-- BUDGET -->
@@ -403,23 +403,7 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="packModal">
-  <div class="modal">
-    <h3>Add Packing Item</h3>
-    <div class="form-row">
-      <div class="field"><label>Item Name</label><input type="text" id="packItemName" placeholder="e.g. Passport"></div>
-      <div class="field"><label>Category</label>
-        <select id="packItemCat">
-          <option>Documents</option><option>Clothes</option><option>Toiletries</option><option>Electronics</option><option>Other</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('packModal')">Cancel</button>
-      <button class="btn" id="packSaveBtn" onclick="addPackItem()">Add Item</button>
-    </div>
-  </div>
-</div>
+
 
 <div class="modal-overlay" id="expenseModal">
   <div class="modal">
@@ -472,7 +456,7 @@ const API = '/api/trip';
 // ── State ───────────────────────────────────────────────────
 let trip = { destinations: [], events: [], packItems: [], expenses: [], todos: [], budget: 0, currency: 'USD' };
 let activeDestFilter = 'all';
-let activePackFilter = 'all';
+let activeAttTypeFilter = 'all';
 let editTodoId = null;
 let editEventId = null;
 let activeTodoFilter = 'all';
@@ -537,7 +521,7 @@ async function loadTrip() {
 }
 
 function renderAll() {
-  renderDestChips(); renderItinerary(); renderPacking(); renderBudget(); renderTodos();
+  renderDestChips(); renderItinerary(); renderAttachmentsTab(); renderBudget(); renderTodos();
 }
 
 // ── Tabs ─────────────────────────────────────────────────────
@@ -741,58 +725,74 @@ function toggleDay(date) {
   if (block) block.classList.toggle('collapsed');
 }
 
-// ── PACKING ──────────────────────────────────────────────────
-function openAddItemModal() { document.getElementById('packItemName').value=''; openModal('packModal'); }
-
-async function addPackItem() {
-  const name = document.getElementById('packItemName').value.trim();
-  const cat = document.getElementById('packItemCat').value;
-  if (!name) return;
-  setLoading('packSaveBtn', true);
-  const item = await api('POST', '/pack', { name, cat, packed: false });
-  trip.packItems.push(item);
-  closeModal('packModal'); renderPacking();
-  setLoading('packSaveBtn', false);
-  toast('🎒 Item added!');
+// ── ATTACHMENTS TAB ──────────────────────────────────────────
+function getAttFileType(mimetype, name) {
+  if (!mimetype) mimetype = '';
+  if (mimetype.startsWith('image/')) return 'image';
+  if (mimetype === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  if (/word|doc|text|txt/.test(mimetype) || /\.(docx?|txt|rtf)$/i.test(name)) return 'doc';
+  return 'other';
 }
 
-async function togglePack(id, current) {
-  const item = trip.packItems.find(p => p._id===id);
-  if (!item) return;
-  item.packed = !current;
-  renderPacking(); // optimistic
-  await api('PATCH', `/pack/${id}`, { packed: item.packed });
+function getAttFileIcon(type) {
+  return { image: '🖼️', pdf: '📄', doc: '📝', other: '📦' }[type] || '📎';
 }
 
-async function removePackItem(id) {
-  await api('DELETE', `/pack/${id}`);
-  trip.packItems = trip.packItems.filter(p => p._id !== id);
-  renderPacking();
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
-function filterPack(el) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('sel'));
+function filterAttTab(el) {
+  document.querySelectorAll('#attTypeFilter .cat-chip').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
-  activePackFilter = el.dataset.cat;
-  renderPacking();
+  activeAttTypeFilter = el.dataset.type;
+  renderAttachmentsTab();
 }
 
-function renderPacking() {
-  const total = trip.packItems.length;
-  const packed = trip.packItems.filter(p=>p.packed).length;
-  document.getElementById('packStats').textContent = `${packed} of ${total} items packed`;
-  document.getElementById('packBar').style.width = total ? (packed/total*100)+'%' : '0%';
-  let items = trip.packItems;
-  if (activePackFilter !== 'all') items = items.filter(p => p.cat===activePackFilter);
-  const list = document.getElementById('packing-list');
-  if (!items.length) { list.innerHTML=`<div class="empty-state"><div class="es-icon">📦</div><p>No items here.</p></div>`; return; }
-  list.innerHTML = items.map(p=>`
-    <div class="pack-item ${p.packed?'packed':''}">
-      <div class="pack-checkbox ${p.packed?'checked':''}" onclick="togglePack('${p._id}',${p.packed})">${p.packed?'✓':''}</div>
-      <span class="item-name">${p.name}</span>
-      <span class="item-cat-badge">${p.cat}</span>
-      <button onclick="removePackItem('${p._id}')" style="background:none;border:none;cursor:pointer;color:var(--mist);font-size:1rem">×</button>
-    </div>`).join('');
+function renderAttachmentsTab() {
+  // Collect all attachments grouped by event
+  const eventsWithAtt = trip.events.filter(ev => ev.attachments && ev.attachments.length > 0);
+  let totalFiles = 0;
+  const groups = eventsWithAtt.map(ev => {
+    const dest = ev.dest ? trip.destinations.find(d => d._id === ev.dest) : null;
+    let files = ev.attachments.map(a => ({
+      ...a,
+      eventId: ev._id,
+      type: getAttFileType(a.mimetype, a.name)
+    }));
+    if (activeAttTypeFilter !== 'all') files = files.filter(f => f.type === activeAttTypeFilter);
+    totalFiles += files.length;
+    return { ev, dest, files };
+  }).filter(g => g.files.length > 0);
+
+  document.getElementById('attStats').textContent = `${totalFiles} file${totalFiles !== 1 ? 's' : ''} across ${groups.length} event${groups.length !== 1 ? 's' : ''}`;
+
+  const list = document.getElementById('attachments-list');
+  if (!groups.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">📎</div><p>No attachments yet.<br>Upload files from the Itinerary tab!</p></div>`;
+    return;
+  }
+  list.innerHTML = groups.map(g => {
+    const dateLabel = g.ev.date ? new Date(g.ev.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+    const destLabel = g.dest ? `${g.dest.emoji} ${g.dest.name}` : '';
+    return `<div class="att-tab-card">
+      <div class="att-event-date">${dateLabel}${destLabel ? ' · ' + destLabel : ''}</div>
+      <div class="att-event-title"><span class="event-tag tag-${g.ev.cat}" style="font-size:0.65rem">${g.ev.cat}</span> ${g.ev.title}</div>
+      <div class="att-tab-files">
+        ${g.files.map(f => `<div class="att-file-card">
+          <a href="${f.path}" target="_blank" class="att-file-icon" title="Open ${f.name}">${getAttFileIcon(f.type)}</a>
+          <div class="att-file-info">
+            <a href="${f.path}" target="_blank" class="att-file-name" title="${f.name}" style="text-decoration:none;color:inherit">${f.name}</a>
+            <div class="att-file-size">${formatFileSize(f.size)}</div>
+          </div>
+          <button class="att-file-remove" onclick="removeAttachment('${f.eventId}','${f._id}')" title="Remove">×</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── BUDGET ───────────────────────────────────────────────────
@@ -976,6 +976,7 @@ function openAttachmentUpload(eventId) {
       const ev=trip.events.find(e=>e._id===eventId);
       if(ev) ev.attachments=attachments;
       renderItinerary();
+      renderAttachmentsTab();
       setSyncBadge('saved');
       toast('📎 Attachment(s) added!');
     } catch(e) {
@@ -992,6 +993,7 @@ async function removeAttachment(eventId,attachId) {
     const ev=trip.events.find(e=>e._id===eventId);
     if(ev) ev.attachments=ev.attachments.filter(a=>a._id!==attachId);
     renderItinerary();
+    renderAttachmentsTab();
     toast('Attachment removed');
   } catch(e) { toast('⚠️ '+e.message); }
 }
